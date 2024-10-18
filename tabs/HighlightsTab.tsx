@@ -39,7 +39,7 @@ function HighlightsTab() {
 
   return (<>
   {topTweets && topTweets.map((tweet: any) => (
-    <Tweet tweet={tweet} />
+    <Tweet key={tweet.tweet_id} tweet={tweet} />
   ))}
   </>)
 }

@@ -3,7 +3,6 @@ import { Fragment } from "react"
 
 function Tweet({ tweet }) {
   return (
-    <Fragment key={tweet.tweet_id}>
     <div key={tweet.tweet_id} style={{ marginBottom: 16, borderBottom: '1px solid #e1e8ed', padding: '12px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start' }}>
             <img src={tweet.avatar_media_url} alt={tweet.username} style={{ width: 48, height: 48, borderRadius: '50%', marginRight: 12 }} />
@@ -30,7 +29,7 @@ function Tweet({ tweet }) {
             <ExternalLink className="inline mr-1" size={14} />
             Open in Twitter
           </a>
-        </div></Fragment>)
+        </div>)
 }
 
 export default Tweet
