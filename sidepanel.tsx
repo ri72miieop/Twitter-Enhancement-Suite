@@ -1,168 +1,159 @@
-import { faExternalLinkAlt, faHeart, faRetweet } from "@fortawesome/free-solid-svg-icons"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { useEffect, useState } from "react"
-import { Rettiwt } from "rettiwt-api"
-import { supabase } from "~core/supabase"
+import { useState, useRef, useEffect } from "react"
+import SearchTab from "./tabs/SearchTab"
+import HighlightsTab from "./tabs/HighlightsTab"
+import OurConversationsTab from "./tabs/OurConversationsTab"
 
-// Helper function to parse the search query
-function parseQuery(query: string) {
-  const terms: { [key: string]: string } = {}
-  const words = query.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+import "./prod.css"
 
-  words.forEach((word) => {
-    if (word.includes(":")) {
-      const [key, value] = word.split(":")
-      terms[key] = value.replace(/"/g, '')
-    } else {
-      terms.text = (terms.text || "") + " " + word
-    }
-  })
-
-  return terms
-}
-
-// Helper function to build Supabase query
-function buildSupabaseQuery(terms: { [key: string]: string }) {
-
-  let params: any = {}
-  
-  if (terms.text) {
-    params.search_query = terms.text.trim()
-  }
-
-  if (terms.from) {
-    params.from_user = terms.from
-  }
-
-  if (terms.to) {
-    params.to_user = terms.to
-  }
-
-  if (terms.since) {
-    params.since_date = terms.since
-  }
-
-  if (terms.until) {
-    params.until_date = terms.until
-  }
-
-  if (terms.min_retweets) {
-    params.min_retweets = parseInt(terms.min_retweets)
-  }
-
-  if (terms.max_retweets) {
-    params.max_retweets = parseInt(terms.max_retweets)
-  }
-
-  if (terms.min_faves || terms.min_likes) {
-    params.min_likes = parseInt(terms.min_faves || terms.min_likes)
-  }
-
-  if (terms.max_faves || terms.max_likes) {
-    params.max_likes = parseInt(terms.max_faves || terms.max_likes)
-  }
-
-  return params;
-}
+const navOptions = [
+  { 
+    key: "highlights", 
+    label: "Highlights", 
+    description: "See this user's most liked tweets of all time.",
+    component: HighlightsTab
+  },
+  { 
+    key: "ourConversations", 
+    label: "Our Conversations", 
+    description: "See previous conversations between you and this user.",
+    component: OurConversationsTab
+  },
+  { 
+    key: "search", 
+    label: "Search", 
+    description: "Search for specific tweets or content.",
+    component: SearchTab
+  },
+  { 
+    key: "thisDay", 
+    label: "On This Day", 
+    description: "Same day and month; different year. Both your own tweets and your faves.",
+    component: null
+  },
+]
 
 function IndexSidePanel() {
-  const [data, setData] = useState<any[]>([])
-  const [search, setSearch] = useState("")
-  const [params, setParams] = useState<any>({})
-  const [isInputFocused, setIsInputFocused] = useState(false)
+  const [activeOption, setActiveOption] = useState(navOptions[0].key)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
 
+  const currentIndex = navOptions.findIndex(option => option.key === activeOption)
+  const prevOption = navOptions[(currentIndex - 1 + navOptions.length) % navOptions.length]
+  const nextOption = navOptions[(currentIndex + 1) % navOptions.length]
 
+  const handleOptionChange = (direction) => {
+    const newIndex = (currentIndex + direction + navOptions.length) % navOptions.length
+    setActiveOption(navOptions[newIndex].key)
+  }
 
   useEffect(() => {
-    async function fetchData() {
-      const terms = parseQuery(search)
-      const params = buildSupabaseQuery(terms)
-      setParams(params)
-      
-      const { data, error } = await supabase.rpc("search_tweets", params)
-
-      if (error) {
-        console.error(JSON.stringify(error, null, 2))
-        return
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false)
       }
-
-      console.log(JSON.stringify(data, null, 2))
-      setData(data)
     }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
-    if (search) {
-      fetchData()
-    }
-  }, [search])
+  const ActiveComponent = navOptions.find(option => option.key === activeOption)?.component || null
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "90vh", // Full viewport height
-        padding: 16
-      }}>
-      <h2>
-        Advanced Twitter Search 
-      </h2>
-      <input 
-        onChange={(e) => setSearch(e.target.value)} 
-        value={search} 
-        placeholder="Enter your search query..."
-        onFocus={() => setIsInputFocused(true)}
-        onBlur={() => setIsInputFocused(false)}
-        style={{ marginBottom: 16, padding: 8 }}
-      />
-      {JSON.stringify(params, null, 2)}
-      {isInputFocused && <div style={{ marginBottom: 16 }}>
-        <small>
-          Examples:<br />
-          - Simple search: cats dogs<br />
-          - From user: from:username<br />
-          - To user: to:username<br />
-          - Since date: since:2023-01-01<br />
-          - Until date: until:2023-12-31<br />
-          - Min retweets: min_retweets:100<br />
-          - Min likes: min_faves:500<br />
-          - Language: lang:en
-        </small>
-      </div>}
-      <div style={{ overflowY: "auto", flex: 1 }}>
-        
-      {data?.map((tweet) => (
-        <div key={tweet.tweet_id} style={{ marginBottom: 16, borderBottom: '1px solid #e1e8ed', padding: '12px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-            <img src={tweet.avatar_media_url} alt={tweet.username} style={{ width: 48, height: 48, borderRadius: '50%', marginRight: 12 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
-                <span style={{ fontWeight: 'bold', marginRight: 4 }}>{tweet.account_display_name}</span>
-                <span style={{ color: '#657786' }}>@{tweet.username}</span>
-                <span style={{ color: '#657786', marginLeft: 'auto' }}>{new Date(tweet.created_at).toLocaleDateString()}</span>
-                
+    <div style={{ display: "flex", flexDirection: "column", height: "90vh", padding: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
+          <button onClick={() => handleOptionChange(-1)} style={arrowButtonStyle}>
+            ← <span style={adjacentOptionStyle}>{prevOption.label}</span>
+          </button>
+          <div ref={dropdownRef} style={{ position: "relative", flex: 1 }}>
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              style={activeOptionStyle}
+            >
+              {navOptions.find(option => option.key === activeOption)?.label}▼
+            </button>
+            {isDropdownOpen && (
+              <div style={dropdownStyle}>
+                {navOptions.map((option) => (
+                  <div 
+                    key={option.key}
+                    onClick={() => {
+                      setActiveOption(option.key)
+                      setIsDropdownOpen(false)
+                    }}
+                    style={dropdownItemStyle}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f8fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <strong>{option.label}</strong>
+                    <p style={{ margin: 0, fontSize: "0.9em" }}>{option.description}</p>
+                  </div>
+                ))}
               </div>
-              <p style={{ margin: '0 0 10px 0', lineHeight: '1.4' }}>{tweet.full_text}</p>
-              <div style={{ display: 'flex', color: '#657786', fontSize: '14px' }}>
-                <span style={{ marginRight: 16 }}>
-                  <FontAwesomeIcon icon={faRetweet} style={{ marginRight: 4 }}></FontAwesomeIcon>
-                  {tweet.retweet_count}
-                </span>
-                <span>
-                  <FontAwesomeIcon icon={faHeart} style={{ marginRight: 4 }}></FontAwesomeIcon>
-                  {tweet.favorite_count}
-                </span>
-              </div>
-            </div>
+            )}
           </div>
-          <a href={`https://twitter.com/${tweet.username}/status/${tweet.tweet_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', textDecoration: 'none', fontSize: '14px', marginTop: 8, display: 'inline-block' }}>
-                    <FontAwesomeIcon icon={faExternalLinkAlt} style={{ marginRight: 4 }} />
-                    Open in Twitter
-                </a>
+          <button onClick={() => handleOptionChange(1)} style={arrowButtonStyle}>
+            <span style={adjacentOptionStyle}>{nextOption.label}</span> →
+          </button>
         </div>
-      ))}
       </div>
+      {ActiveComponent && <ActiveComponent />}
     </div>
   )
+}
+
+const arrowButtonStyle = {
+  padding: "8px 12px",
+  backgroundColor: "transparent",
+  color: "#1da1f2",
+  border: "none",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  fontSize: "12px",  // Reduced size for side options
+}
+
+const adjacentOptionStyle = {
+  margin: "0 8px",
+  color: "#657786",
+  fontSize: "12px",  // Reduced size for side options
+}
+
+const activeOptionStyle = {
+  padding: "8px 16px",
+  backgroundColor: "#f5f8fa",
+  color: "#14171a",
+  border: "1px solid #e1e8ed",
+  borderRadius: 20,
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  width: "100%",
+  fontSize: "14px",  // Slightly larger than side options
+}
+
+const dropdownStyle = {
+  position: "absolute",
+  top: "100%",
+  left: "-20%",  // Adjusted to make dropdown wider
+  right: "-20%", // Adjusted to make dropdown wider
+  backgroundColor: "white",
+  border: "1px solid #e1e8ed",
+  borderRadius: 4,
+  boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+  zIndex: 10,
+  marginTop: 4,
+}
+
+const dropdownItemStyle = {
+  padding: 16,  // Increased padding for larger text
+  cursor: "pointer",
+  borderBottom: "1px solid #e1e8ed",
+  ':hover': {
+    backgroundColor: "#f5f8fa",
+  },
+  fontSize: "14px",  // Increased font size in dropdown
 }
 
 export default IndexSidePanel

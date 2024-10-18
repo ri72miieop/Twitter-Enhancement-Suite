@@ -7,7 +7,7 @@
     ".plasmo/index.d.ts",
     "./**/*.ts",
     "./**/*.tsx"
-  ],
+, "postcss.config.js"  ],
   "compilerOptions": {
     "paths": {
       "~*": [
