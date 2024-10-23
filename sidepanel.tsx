@@ -4,6 +4,7 @@ import HighlightsTab from "./tabs/HighlightsTab"
 import OurConversationsTab from "./tabs/OurConversationsTab"
 
 import "./prod.css"
+import OnThisDay from "~tabs/OnThisDay"
 
 const navOptions = [
   { 
@@ -28,7 +29,7 @@ const navOptions = [
     key: "thisDay", 
     label: "On This Day", 
     description: "Same day and month; different year. Both your own tweets and your faves.",
-    component: null
+    component: OnThisDay
   },
 ]
 

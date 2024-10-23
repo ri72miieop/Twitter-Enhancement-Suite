@@ -7,7 +7,6 @@ import { fetchTopTweetsByUser } from "~utils/dbUtils"
 
 function HighlightsTab() {
     const [topTweets, setTopTweets] = useState<any[]>(null)
-    const [accountData, setAccountData] = useState<any>(null)
 
     useEffect(() => {
 
@@ -21,7 +20,22 @@ function HighlightsTab() {
                 favorited: data.most_favorited_tweets,
                 retweeted: data.most_retweeted_tweets,
             } 
+            
+            
+            const {data:account} = await supabase.from('account').select('account_id,username,account_display_name').eq('account_id','345709253');
+            const {data:profile} = await supabase.from('profile').select('*').eq('account_id',account[0].account_id);
+
+            console.log(tweetData.favorited);
+            for(let i = 0; i < tweetData.favorited.length; i++){
+
+              tweetData.favorited[i].avatar_media_url = profile[0].avatar_media_url;
+              tweetData.favorited[i].username = account[0].username;
+              tweetData.favorited[i].account_display_name = account[0].account_display_name;
+            }
+
+
             setTopTweets(tweetData.favorited)
+            
 
             
         }
