@@ -20,6 +20,7 @@
     "@radix-ui/react-scroll-area": "^1.2.0",
     "@radix-ui/react-tabs": "^1.1.1",
     "@supabase/supabase-js": "2.39.3",
+    "async-mutex": "^0.5.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.453.0",
@@ -43,6 +44,10 @@
   },
   "manifest": {
     "key": "$CRX_KEY",
+    "permissions": [
+      "webRequest",
+      "storage"
+    ],
     "host_permissions": [
       "https://*/*"
     ],
