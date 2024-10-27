@@ -9,7 +9,7 @@ interface InsertedTweet {
 
 class InsertedTweetStorage {
   private storage: Storage
-  private readonly TWEETS_KEY = "insertedTweets"
+  private readonly TWEETS_KEY = "insertedTweets_"
   private static mutex = new Mutex();
   constructor() {
     this.storage = new Storage({
@@ -18,59 +18,63 @@ class InsertedTweetStorage {
   }
 
   private async getTweets(): Promise<InsertedTweet[]> {
-    const tweets = await this.storage.get<InsertedTweet[]>(this.TWEETS_KEY)
-    return tweets || []
+    const keys = await this.storage.getAll();
+    const tweets: InsertedTweet[] = [];
+    for (const key in keys) {
+      if (key.startsWith(this.TWEETS_KEY)) {
+        tweets.push(await this.storage.get<InsertedTweet>(key));
+      }
+    }
+    return tweets;
   }
 
-  private async saveTweets(tweets: InsertedTweet[]): Promise<void> {
+  private async saveTweet(tweet: InsertedTweet): Promise<void> {
     const date = new Date();
-    tweets.forEach(tweet => {
+    
       tweet.insertedDate = tweet.insertedDate ?? date
-    })  
-    await this.storage.set(this.TWEETS_KEY, tweets)
+     
+    await this.storage.set(this.TWEETS_KEY+tweet.id, tweet)
   }
 
   async addTweet(tweet: InsertedTweet): Promise<void> {
 
-    const release = await InsertedTweetStorage.mutex.acquire();
-    try {
-      
-      const tweets = await this.getTweets()
-      tweets.push(tweet)
-      await this.saveTweets(tweets)
+
+      await this.saveTweet(tweet)
 
       console.log("Inserted tweet", tweet.id)
     
-  } finally {
-    // Always release the mutex lock
-    release();
-  }
+
   }
 
   async removeTweet(id: string): Promise<void> {
-    const tweets = await this.getTweets()
-    const updatedTweets = tweets.filter(tweet => tweet.id !== id)
-    await this.saveTweets(updatedTweets)
+    this.storage.remove(this.TWEETS_KEY+id)
   }
 
   async getTweet(id: string): Promise<InsertedTweet | undefined> {
-    const tweets = await this.getTweets()
-    return tweets.find(tweet => tweet.id === id)
+    return await this.storage.get<InsertedTweet>(this.TWEETS_KEY+id)
   }
 
   async removeAllTweets(): Promise<void> {
-    await this.storage.remove(this.TWEETS_KEY)
+    const keys = await this.storage.getAll();
+    for (const key in keys) {
+      if (key.startsWith(this.TWEETS_KEY)) {
+        await this.storage.remove(key);
+      }
+    }
   }
 //remove tweets with more than 2 days old
   async removeOldTweets(date: Date): Promise<void> {
     const tweets = await this.getTweets()
     const twoDaysAgo = new Date(date.getTime() - 2 * 24 * 60 * 60 * 1000)
-    const updatedTweets = tweets.filter(tweet => !tweet.insertedDate || tweet.insertedDate > twoDaysAgo)
-    await this.saveTweets(updatedTweets)
+    for (const tweet of tweets) {
+        if (tweet && tweet.insertedDate && tweet.insertedDate < twoDaysAgo) {
+          await this.storage.remove(tweet.id);
+        }
+  }
   }
 
   async getAllTweets(): Promise<InsertedTweet[]> {
-    return await this.getTweets()
+    return await this.getTweets();
   }
 }
 

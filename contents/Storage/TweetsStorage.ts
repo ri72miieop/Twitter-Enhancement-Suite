@@ -82,14 +82,17 @@ class TweetStorage {
   async GetStatus(id:string) : Promise<"NOT_SAVED" | "SAVED" | "INSERTED">{
     
     const insertedTweet = await TweetStorage.insertedTweetStorage.getTweet(id)
-    if(!insertedTweet || !insertedTweet.insertedDate){
-      return "SAVED"
-    }
     const tweet = await this.getTweet(id)
+
+
+    if(insertedTweet || (insertedTweet && insertedTweet.insertedDate)){
+      return "INSERTED"
+    }
+
     if(!tweet){
       return "NOT_SAVED"
     }else{
-      return "INSERTED"
+      return "SAVED"
     }
   }
 
@@ -98,21 +101,8 @@ class TweetStorage {
     return (await TweetStorage.insertedTweetStorage.getAllTweets()).length
   }
   async getAllTweets(): Promise<ScrapedTweet[]> {
-    // Reset cache before getting tweets to ensure fresh data
-    //await TweetStorage.resetCache()
     return await TweetStorage.getTweets()
   }
-
-  //static async saveAllChanges(): Promise<void> {
-  //  if (TweetStorage.updateTimeout) {
-  //    clearTimeout(TweetStorage.updateTimeout)
-  //  }
-  //  await TweetStorage.saveTweets()
-  //}
-
-  //private static async resetCache(): Promise<void> {
-  //  TweetStorage.tweetsCache = null
-  //}
 }
 
 export default TweetStorage

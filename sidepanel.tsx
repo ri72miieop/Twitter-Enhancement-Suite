@@ -5,6 +5,7 @@ import OurConversationsTab from "./tabs/OurConversationsTab"
 
 import "./prod.css"
 import OnThisDay from "~tabs/OnThisDay"
+import ChatRoom from "~tabs/Chatroom"
 
 const navOptions = [
   { 
@@ -30,6 +31,12 @@ const navOptions = [
     label: "On This Day", 
     description: "Same day and month; different year. Both your own tweets and your faves.",
     component: OnThisDay
+  },
+  { 
+    key: "chatroom", 
+    label: "Chatroom", 
+    description: "Chat with this user.",
+    component: ChatRoom
   },
 ]
 
