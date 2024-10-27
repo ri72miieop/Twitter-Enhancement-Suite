@@ -67,7 +67,7 @@ async function processTweets() {
   for (const tweet of tweets) {
     try {
       // For now, processing is just logging the tweet
-      console.log("Processing tweet:", tweet)
+      console.log("Processing tweet:", tweet.id)
 
 
       const itemToInsert = {
@@ -83,10 +83,9 @@ async function processTweets() {
         reply_to_username : null
       }
 
-      console.log(JSON.stringify(itemToInsert))
-
       const {data,error} = await supabase.from("import_tweets").insert(itemToInsert).select()
-      console.log(JSON.stringify(data),JSON.stringify(error))
+      if(error)
+        console.log(JSON.stringify(error))
       
       // Mark the tweet as saved after processing
       await tweetStorage.markAsSaved(tweet.id)
