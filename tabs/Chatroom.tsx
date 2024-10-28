@@ -1,13 +1,36 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "~core/supabase";
 import UserInfo from "~components/ui/Chat/UserInfo";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X, Plus } from "lucide-react";
+
+
+
+const testUserId = "345709253";
+
+interface ChatRoom {
+  id: string;
+  user_admin: string;
+  state: 'OPEN' | 'CLOSED';
+  created_at: string;
+}
+
+interface ChatMessage {
+  id: string;
+  message: string;
+  chatroom_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+
 
 const ChatRoom = () => {
-  const [messages, setMessages] = useState<any[]>();
+  const [chatroom, setChatroom] = useState<ChatRoom | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const channelId = "1";
+  const [channelId, setChannelId] = useState<string>();
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
@@ -18,14 +41,22 @@ const ChatRoom = () => {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from("chatroom_message")
-        .select("*")
-        .eq("chatroom_id", channelId)
-        .order("created_at", { ascending: true });
+      const {data :chatData, error :chatError } = await supabase.from("chatroom").select("*").eq("user_admin", testUserId).eq("state","OPEN").order("created_at", { ascending: true });
       
-      if (error) console.log(JSON.stringify(error));
-      setMessages(data);
+      if(chatData && chatData.length > 0){
+        console.log(JSON.stringify(chatData));
+        setChatroom(chatData[0]);
+        setChannelId(chatData[0].id);
+
+        const { data, error } = await supabase
+          .from("chatroom_message")
+          .select("*")
+          .eq("chatroom_id", channelId)
+          .order("created_at", { ascending: true });
+        
+        if (error) console.log(JSON.stringify(error));
+        setMessages(data);
+      }
       setIsLoading(false);
     }
 
@@ -44,6 +75,7 @@ const ChatRoom = () => {
   };
 
   useEffect(() => {
+    
     const channel = supabase
       .channel(channelId)
       .on("postgres_changes", databaseFilter, receivedDatabaseEvent)
@@ -52,11 +84,48 @@ const ChatRoom = () => {
     return () => {
       channel.unsubscribe();
     };
-  }, [messages]);
+  }, [channelId]);
+
+  const handleCloseChat = async () => {
+    if (chatroom?.user_admin === testUserId) {
+      const { error } = await supabase
+        .from("chatroom")
+        .update({ state: "CLOSED" })
+        .eq("id", channelId);
+
+      if (error) {
+        console.error("Error closing chat:", error);
+      } else {
+        setChatroom(null);
+        setChannelId(null);
+        setMessages([]);
+      }
+    }
+  };
+  const handleCreateNewChat = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from("chatroom")
+      .insert({
+        user_admin: testUserId,
+        state: "OPEN",
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating chat:", error);
+    } else {
+      setChatroom(data);
+      setChannelId(data.id);
+    }
+    setIsLoading(false);
+  };
 
   const receivedDatabaseEvent = (event: any) => {
     const newMsg = event.new;
-    setMessages(messages ? [...messages, newMsg] : [newMsg]);
+    setMessages((messages) => messages  ? [...messages, newMsg] : [newMsg]);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -70,7 +139,7 @@ const ChatRoom = () => {
       const { error } = await supabase.from("chatroom_message").insert({
         message,
         chatroom_id: channelId,
-        user_id: "345709253",
+        user_id: testUserId,
         created_at: new Date().toISOString(),
       });
 
@@ -104,8 +173,33 @@ const ChatRoom = () => {
           </div>
         ) : (
           <>
+          {channelId}
+          <div className="flex flex-col h-screen bg-gray-50">
+      <div className="bg-white border-b p-4 flex justify-between">
+        {!channelId &&
+        <button
+          onClick={handleCreateNewChat}
+          className="text-blue-600 hover:text-blue-700 flex items-center gap-2 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors"
+          disabled={isLoading}
+        >
+          <Plus className="w-4 h-4" />
+          New Chat
+        </button>
+        }
+        
+        {chatroom?.user_admin === testUserId && (
+          <button
+            onClick={handleCloseChat}
+            className="text-gray-600 hover:text-red-600 flex items-center gap-2 px-3 py-1 rounded-md hover:bg-red-50 transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Close Chat
+          </button>
+        )}
+      </div>
+      </div>
             {messages?.map((message, index) => {
-              const isCurrentUser = message.user_id === "345709253";
+              const isCurrentUser = message.user_id === testUserId;
               return (
                 <div
                   key={message.id || index}
