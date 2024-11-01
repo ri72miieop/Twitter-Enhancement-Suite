@@ -27,7 +27,7 @@ export const ChatSystem: React.FC<ChatSystemProps> = ({
   }, [messages]);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-white/90 border-t">
+    <div className="absolute bottom-0 left-0 right-0 bg-white/90 border-t shadow-lg">
       <div
         ref={chatRef}
         className="max-h-32 overflow-y-auto p-2 space-y-1"

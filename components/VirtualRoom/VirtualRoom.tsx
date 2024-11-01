@@ -9,6 +9,7 @@ import { UserAvatar } from './UserAvatar';
 import { RoomSetup } from './RoomSetup';
 import { FLOOR_PATTERNS } from '~constants/VirtualRoom/room';
 import { generateId } from '~utils/VirtualRoom/id';
+import { RoomContainer } from './RoomContainer';
 
 export const VirtualRoom: React.FC = () => {
   const [setup, setSetup] = useState<boolean>(true);
@@ -99,22 +100,11 @@ export const VirtualRoom: React.FC = () => {
         </div>
 
         <div className="relative">
-          <div
-            className={`relative overflow-hidden ${FLOOR_PATTERNS[roomData.floorPattern]}`}
-            style={{
-              width: roomData.width,
-              height: roomData.height
-            }}
+          <RoomContainer
+            floorPattern={roomData.floorPattern}
+            width={roomData.width}
+            height={roomData.height}
           >
-            {/* Background Grid */}
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: 'linear-gradient(#00000005 1px, transparent 1px), linear-gradient(90deg, #00000005 1px, transparent 1px)',
-                backgroundSize: '20px 20px'
-              }}
-            />
-
             {/* Walls */}
             <WallRenderer walls={roomData.walls} />
 
@@ -149,7 +139,7 @@ export const VirtualRoom: React.FC = () => {
               onSendMessage={handleSendMessage}
               user={roomData.user}
             />
-          </div>
+          </RoomContainer>
         </div>
 
         <div className="p-4 bg-gray-50 border-t">

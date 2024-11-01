@@ -65,8 +65,6 @@ const MootsPage = ({ anchor }: PlasmoCSUIProps) => {
                     </li>
                 ))}
             </ul>
-
-            <VirtualRoom />
         </div>
     )
 }

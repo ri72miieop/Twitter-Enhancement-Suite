@@ -1,4 +1,3 @@
-
 // src/components/FurnitureItem.tsx
 import React from 'react';
 import { Trash2 } from 'lucide-react';
@@ -19,19 +18,22 @@ export const FurnitureItem: React.FC<FurnitureItemProps> = ({
 }) => {
   return (
     <div
-      className="absolute cursor-move text-4xl"
+      className={`absolute cursor-move text-4xl select-none ${
+        isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+      }`}
       style={{
         left: item.x,
         top: item.y,
         transform: 'translate(-50%, -50%)',
-        filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.1))'
+        filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.1))',
+        touchAction: 'none'
       }}
       onClick={() => onSelect(item)}
     >
       {item.type}
       {isSelected && (
         <button
-          className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full"
+          className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onRemove(item.id);
