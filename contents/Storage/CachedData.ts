@@ -21,12 +21,18 @@ export interface TimedData<T>{
 }
 
 
+export interface Moot{
+    user_id: string,
+    username: string
+}
+
 class CachedData {
   private static storage: Storage = new Storage({
     area: "local"
   })
 
   private static readonly USERDATA_KEY = "userData_"
+  private static readonly moots = "userMoots_"
 
 
 
@@ -57,7 +63,31 @@ class CachedData {
     }
     return userData.data;
   }
+
+
+  async GetMoots(userid : string) :Promise<Moot[]>{
+    const moots = await CachedData.storage.get<TimedData<Moot[]>>(CachedData.moots + userid)
+    if(!moots || moots.last_updated < Date.now() - 1000 * 60 * 60 * 24){
+        const {data, error} = await supabase.rpc("get_moots", {user_id: userid})
+        if(error) throw error
+
+        const res: TimedData<Moot[]> = {data: data.map(moot => ({user_id: moot.user_id, username: moot.username})), last_updated: Date.now()}
+        await CachedData.storage.set(CachedData.moots + userid, res)
+        return res.data;
+    }
+    return moots.data;
+  }
+  private async ResetMootsCache(key:string) {
+    const allKeys = await CachedData.storage.getAll()
+    const mootsKeys = Object.keys(allKeys).filter(key => key.startsWith(key))
+    await Promise.all(mootsKeys.map(key => CachedData.storage.remove(key)))
+  }
+  async ResetAllCache(){
+    await this.ResetMootsCache(CachedData.moots)
+    await this.ResetMootsCache(CachedData.USERDATA_KEY)
+  }
 }
+
 
 export default CachedData
 

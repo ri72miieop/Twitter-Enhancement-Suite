@@ -79,6 +79,14 @@ function IndexOptions() {
         redirectTo: location.href
       }
     })
+  const handleCacheReset = async () => {
+    try {
+      await GlobalCachedData.ResetAllCache()
+      alert("Cache reset successful!")
+    } catch (error) {
+      console.error("Error resetting cache:", error)
+      alert("Error resetting cache")
+    }
   }
 
   return (
@@ -110,6 +118,11 @@ function IndexOptions() {
                 setUser(null)
               }}>
               Logout
+            </button>
+            <button 
+              onClick={handleCacheReset}
+              style={{ marginTop: "10px" }}>
+              Reset Cache
             </button>
           </>
         )}
