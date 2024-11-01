@@ -66,16 +66,16 @@ class CachedData {
 
 
   async GetMoots(userid : string) :Promise<Moot[]>{
-    const moots = await CachedData.storage.get<TimedData<Moot[]>>(CachedData.moots + userid)
-    if(!moots || moots.last_updated < Date.now() - 1000 * 60 * 60 * 24){
+   //const moots = await CachedData.storage.get<TimedData<Moot[]>>(CachedData.moots + userid)
+   //if(!moots || moots.last_updated < Date.now() - 1000 * 60 * 60 * 24){
         const {data, error} = await supabase.rpc("get_moots", {user_id: userid})
         if(error) throw error
 
         const res: TimedData<Moot[]> = {data: data.map(moot => ({user_id: moot.user_id, username: moot.username})), last_updated: Date.now()}
         await CachedData.storage.set(CachedData.moots + userid, res)
         return res.data;
-    }
-    return moots.data;
+    //}
+    //return moots.data;
   }
   private async ResetMootsCache(key:string) {
     const allKeys = await CachedData.storage.getAll()
