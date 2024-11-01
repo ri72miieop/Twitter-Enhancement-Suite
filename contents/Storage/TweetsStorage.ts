@@ -24,7 +24,7 @@ class TweetStorage {
   //}
 
   private static async getTweets(): Promise<ScrapedTweet[]> {
-    return await TweetStorage.storage.get<ScrapedTweet[]>(TweetStorage.TWEETS_KEY)
+    return await TweetStorage.storage.get<ScrapedTweet[]>(TweetStorage.TWEETS_KEY) || []
   }
 
   //private static debouncedSaveTweets(): void {
