@@ -21,18 +21,21 @@ export interface TimedData<T>{
 }
 
 
-export interface Moot{
+export interface User{
     user_id: string,
     username: string
 }
 
 class CachedData {
+  
   private static storage: Storage = new Storage({
     area: "local"
   })
 
   private static readonly USERDATA_KEY = "userData_"
   private static readonly moots = "userMoots_"
+  private static readonly followers = "userFollowers_"
+  private static readonly follows = "userFollows_"
 
 
 
@@ -65,26 +68,51 @@ class CachedData {
   }
 
 
-  async GetMoots(userid : string) :Promise<Moot[]>{
-   //const moots = await CachedData.storage.get<TimedData<Moot[]>>(CachedData.moots + userid)
+  async GetMoots(userid : string) :Promise<User[]>{
+   //const moots = await CachedData.storage.get<TimedData<User[]>>(CachedData.moots + userid)
    //if(!moots || moots.last_updated < Date.now() - 1000 * 60 * 60 * 24){
         const {data, error} = await supabase.rpc("get_moots", {user_id: userid})
         if(error) throw error
 
-        const res: TimedData<Moot[]> = {data: data.map(moot => ({user_id: moot.user_id, username: moot.username})), last_updated: Date.now()}
+        const res: TimedData<User[]> = {data: data.map(moot => ({user_id: moot.user_id, username: moot.username})), last_updated: Date.now()}
         await CachedData.storage.set(CachedData.moots + userid, res)
         return res.data;
     //}
     //return moots.data;
   }
-  private async ResetMootsCache(key:string) {
+
+  async GetFollowers(userid : string) :Promise<User[]>{
+    //const followers = await CachedData.storage.get<TimedData<User[]>>(CachedData.followers + userid)
+   //if(!followers || followers.last_updated < Date.now() - 1000 * 60 * 60 * 24){
+      const {data, error} = await supabase.rpc("get_followers", {user_id: userid})
+      if(error) throw error
+      const res: TimedData<User[]> = {data: data.map(follower => ({user_id: follower.user_id, username: follower.username})), last_updated: Date.now()}
+      await CachedData.storage.set(CachedData.followers + userid, res)
+      return res.data;
+    //}
+    //return moots.data;
+  }
+  async GetFollows(userid : string) :Promise<User[]>{
+    //const follows = await CachedData.storage.get<TimedData<User[]>>(CachedData.follows + userid)
+   //if(!follows || follows.last_updated < Date.now() - 1000 * 60 * 60 * 24){
+      const {data, error} = await supabase.rpc("get_followings", {user_id: userid})
+      if(error) throw error
+      const res: TimedData<User[]> = {data: data.map(following => ({user_id: following.user_id, username: following.username})), last_updated: Date.now()}
+      await CachedData.storage.set(CachedData.follows + userid, res)
+      return res.data;
+    //}
+    //return moots.data;
+  }
+  private async ResetCacheWithKey(key:string) {
     const allKeys = await CachedData.storage.getAll()
-    const mootsKeys = Object.keys(allKeys).filter(key => key.startsWith(key))
-    await Promise.all(mootsKeys.map(key => CachedData.storage.remove(key)))
+    const cacheSelectedKeys = Object.keys(allKeys).filter(key => key.startsWith(key))
+    await Promise.all(cacheSelectedKeys.map(key => CachedData.storage.remove(key)))
   }
   async ResetAllCache(){
-    await this.ResetMootsCache(CachedData.moots)
-    await this.ResetMootsCache(CachedData.USERDATA_KEY)
+    await this.ResetCacheWithKey(CachedData.moots)
+    await this.ResetCacheWithKey(CachedData.USERDATA_KEY)
+    await this.ResetCacheWithKey(CachedData.followers)
+    await this.ResetCacheWithKey(CachedData.follows)
   }
 }
 
