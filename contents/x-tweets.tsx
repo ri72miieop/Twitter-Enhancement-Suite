@@ -10,6 +10,7 @@ import { useState, useEffect } from "react"
 import { GlobalCachedData } from "./Storage/CachedData"
 import { supabase } from "~core/supabase"
 import { getUser } from "~utils/dbUtils"
+import { TweetEnhancements } from "~utils/TweetEnhancements"
  
 export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
   element.getAttribute("aria-labelledby") + `-xtweets`
@@ -151,6 +152,10 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     const [value,setValue] = useState(0)
     //const [tweetsStorage, setTweetsStorage] = useStorage("tweets", (t) => !t || t.length==0?[tweetData]:[...t,tweetData])
     const [isMutual, setIsMutual] = useState(false)
+    const [isFollowed, setIsFollowed] = useState(false)
+    const [isFollower, setIsFollower] = useState(false)
+    const [tweetBadge, setTweetBadge] = useState({isMutual:false,isFollowed:false,isFollower:false})
+    const [userId,setUserId] = useState("")
     //tweetStorage.addTweet(tweetData);
 
     //MarkAsStored(tweetElement)
@@ -177,20 +182,47 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
 
     useEffect(() => {
       async function checkMutual(){
-        const moots = await GlobalCachedData.GetMoots((await getUser().then(i=>i.id)))
-        setIsMutual(moots.some(moot => moot.username === tweetData.author.handle))
+        const moots = await GlobalCachedData.GetMoots(userId)
+        setTweetBadge((item) => ({isMutual:moots.some(moot => moot.username === tweetData.author.handle),isFollowed:item.isFollowed,isFollower:item.isFollower}))
         console.log("isMutual",isMutual)
-        console.log("moots",JSON.stringify(moots))
+        //console.log("moots",JSON.stringify(moots))
       }
-      checkMutual()
-    }, [tweetData.id, tweetElement]);
+
+      async function checkFollows(){
+        const follows = await GlobalCachedData.GetFollows(userId)
+        setTweetBadge((item) => ({isMutual:item.isMutual,isFollowed:follows.some(follow => follow.username === tweetData.author.handle),isFollower:item.isFollower}))
+        console.log("isFollowed",isFollowed)
+        //console.log("follows",JSON.stringify(follows))
+      }
+      async function checkFollowers(){
+        const followers = await GlobalCachedData.GetFollowers(userId)
+        setTweetBadge((item) => ({isMutual:item.isMutual,isFollowed:item.isFollowed,isFollower:followers.some(follower => follower.username === tweetData.author.handle)}))
+        console.log("isFollower",isFollower)
+        //console.log("followers",JSON.stringify(followers))
+      }
+      if(!userId){
+        getUser().then(i=>{setUserId(i.id); console.log("userId",userId)})
+      }
+
+      if(userId){
+        checkMutual()
+        checkFollows()
+        checkFollowers()
+      }
+    }, [tweetData.id, tweetElement,userId]);
     //console.log(tweetData);
     if(tweetData.engagement.likes> 100000){
         parentElement.innerHTML = `<div> too many likes </div>`
     }
 
-    if(isMutual){
-      enhanceMutualTweet(tweetElement);
+    if(tweetBadge){
+      if(tweetBadge.isMutual){
+        TweetEnhancements.enhanceMutualTweet(tweetElement);
+      }else if(tweetBadge.isFollowed){
+        TweetEnhancements.enhanceFollowingTweet(tweetElement);
+      }else if(tweetBadge.isFollower){
+        TweetEnhancements.enhanceFollowerTweet(tweetElement);
+      }
     }
 
     //NotEndorsedAnymore(tweetElement)
@@ -198,7 +230,18 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     tweetStorage.inserted().then(v=>setValue(v));
     
     return (
-      <>inserted: {value}
+      <>
+      {(tweetBadge.isMutual||tweetBadge.isFollowed||tweetBadge.isFollower) &&(
+  <span className="badge" style={{
+    backgroundColor : '#FF1493',
+                color : 'white',
+                padding : '2px 8px',
+                borderRadius : '12px',
+                fontSize : '12px',
+                fontWeight : 'bold',
+                marginLeft : '8px'
+                }} > {tweetBadge.isMutual?"MUTUAL":tweetBadge.isFollowed?"FOLLOWING":tweetBadge.isFollower?"FOLLOWER":""}</span>
+      )}
       </>
     )
     return (
