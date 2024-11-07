@@ -3,7 +3,7 @@ import { supabase } from "~core/supabase"
 import TweetList from "../components/TweetList"
 import { parseQuery, buildSupabaseQuery } from "../utils/searchUtils"
 import { getSignedInUser } from "~utils/dbUtils"
-import nopfp2 from "data-base64:~assets/custom/nopfp2_4832.jpg"
+
 function SearchTab() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState("")
@@ -39,7 +39,7 @@ function SearchTab() {
         data.forEach((tweet) => {
           tweet.username = tweet.username || "unknown";
           tweet.account_display_name = tweet.account_display_name || "unknown";
-          tweet.avatar_media_url = tweet.avatar_media_url || nopfp2;
+          tweet.avatar_media_url = tweet.avatar_media_url || "assets/custom/nopfp2_4832.jpg";
           
         })
         console.log(JSON.stringify(data, null, 2))
@@ -76,14 +76,15 @@ function SearchHelpText() {
     <div style={{ marginBottom: 16 }}>
       <small>
         Examples:<br />
-        - Simple search: cats dogs<br />
-        - From user: from:username<br />
-        - To user: to:username<br />
-        - Since date: since:2023-01-01<br />
-        - Until date: until:2023-12-31<br />
-        - Min retweets: min_retweets:100<br />
-        - Min likes: min_faves:500<br />
-        - Language: lang:en
+        - Simple search » cats dogs<br />
+        - From user » from:username<br />
+        - To user » to:username<br />
+        - Since date » since:2023-01-01<br />
+        - Until date » until:2023-12-31<br />
+        - Min retweets » min_retweets:100<br />
+        - Min likes » min_faves:500<br />
+        - Language » lang:en
+        - Search only on your likes  include_likes:true
       </small>
     </div>
   )
