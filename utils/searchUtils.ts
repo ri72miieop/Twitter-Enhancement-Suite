@@ -55,5 +55,9 @@ export function buildSupabaseQuery(terms: { [key: string]: string }) {
     params.max_likes = parseInt(terms.max_faves || terms.max_likes)
   }
 
+  if(terms.include_likes) {
+    params.include_likes = terms.include_likes.toLowerCase() === "true" || terms.include_likes === "1" || terms.include_likes === "yes"
+  }
+
   return params;
 }
