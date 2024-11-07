@@ -24,13 +24,18 @@ function TweetList({ data }) {
                 <Heart className="inline mr-1" size={14} />
                 {tweet.favorite_count}
               </span>
+
+        <span style={{ marginLeft: 'auto' }}>
+
+        <a href={`https://twitter.com/${tweet.username}/status/${tweet.tweet_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', textDecoration: 'none', display: 'inline-block' }}>
+          <ExternalLink className="inline mr-1" size={14} />
+          </a>
+       
+        </span>
             </div>
           </div>
         </div>
-        <a href={`https://twitter.com/${tweet.username}/status/${tweet.tweet_id}`} target="_blank" rel="noopener noreferrer" style={{ color: '#1da1f2', textDecoration: 'none', fontSize: '14px', marginTop: 8, display: 'inline-block' }}>
-          <ExternalLink className="inline mr-1" size={14} />
-          Open in Twitter
-        </a>
+        
       </div>
       ))}
     </div>
