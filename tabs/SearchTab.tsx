@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { supabase } from "~core/supabase"
 import TweetList from "../components/TweetList"
 import { parseQuery, buildSupabaseQuery } from "../utils/searchUtils"
-
+import { getSignedInUser } from "~utils/dbUtils"
+import nopfp2 from "data-base64:~assets/custom/nopfp2_4832.jpg"
 function SearchTab() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState("")
@@ -10,25 +11,45 @@ function SearchTab() {
   const [isInputFocused, setIsInputFocused] = useState(false)
 
   useEffect(() => {
-    async function fetchData() {
-      const terms = parseQuery(search)
-      const params = buildSupabaseQuery(terms)
-      setParams(params)
-      
-      const { data, error } = await supabase.rpc("search_tweets", params)
+    const debounceTimeout = setTimeout(async () => {
+      if (!search) return;
 
-      if (error) {
-        console.error(JSON.stringify(error, null, 2))
-        return
+      async function fetchData() {
+        const terms = parseQuery(search)
+        const params = buildSupabaseQuery(terms)
+        
+        if(params.include_likes) {
+          const signedInUser = await getSignedInUser();
+          if(signedInUser) {
+            params.auth_account_id = signedInUser.id;
+            console.log("signedInUser", signedInUser)
+          }
+        }
+        setParams(params)
+        
+        const rpcFunction = params.include_likes ? "search_liked_tweets" : "search_tweets"
+        setData([])
+        const { data, error } = await supabase.rpc(rpcFunction, params)
+
+        if (error) {
+          console.error(JSON.stringify(error, null, 2))
+          setData([])
+          return
+        }
+        data.forEach((tweet) => {
+          tweet.username = tweet.username || "unknown";
+          tweet.account_display_name = tweet.account_display_name || "unknown";
+          tweet.avatar_media_url = tweet.avatar_media_url || nopfp2;
+          
+        })
+        console.log(JSON.stringify(data, null, 2))
+        setData(data)
       }
 
-      console.log(JSON.stringify(data, null, 2))
-      setData(data)
-    }
-
-    if (search) {
       fetchData()
-    }
+    }, 1000) // 500ms debounce delay
+
+    return () => clearTimeout(debounceTimeout)
   }, [search])
 
   return (
@@ -43,6 +64,7 @@ function SearchTab() {
         style={{ marginBottom: 16, padding: 8 }}
       />
       {JSON.stringify(params, null, 2)}
+      {data.length}
       {isInputFocused && <SearchHelpText />}
       <TweetList data={data} />
     </>
