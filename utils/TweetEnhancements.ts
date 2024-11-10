@@ -76,6 +76,31 @@ export const TweetEnhancements = {
         }
     },
 
+    enhanceOriginalPoster: async (tweetElement) => {
+        try {
+            // Add a crown icon next to the username
+            const usernameElement = tweetElement.querySelector('div[data-testid="Tweet-User-Avatar"]').parentElement;
+            
+            if (usernameElement && !usernameElement.querySelector('.op-sprout')) {
+                const sprout = document.createElement('div');
+                sprout.className = 'op-sprout';
+                sprout.innerHTML = '🌱';
+                sprout.style.marginLeft = '4px';
+                sprout.style.fontSize = '16px';
+                usernameElement.appendChild(sprout);
+            }
+
+            // Add a special border
+            const tweetCard = tweetElement.closest('article');
+            if (tweetCard) {
+                tweetCard.style.border = '1px solid gold';
+                tweetCard.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.3)';
+            }
+        } catch (error) {
+            console.error('Error enhancing original poster tweet:', error);
+        }
+    },
+
     enhanceMutualTweet: async (tweetElement) => {
         return TweetEnhancements.enhanceTweet(tweetElement, 'MUTUAL', 'linear-gradient(45deg, #fff 0%, #ffe6f3 100%)', 'linear-gradient(45deg, #fff 0%, #ffd6ec 100%)');
     },

@@ -58,11 +58,21 @@ const ChangeBackgroundColor = (element: HTMLElement, color: string) => {
 
 const isDev = process.env.environment === "dev"
 
+
+const extractXUsername = (url: string): string | false => {
+  // Check if URL matches pattern x.com/username/status/
+  const match = url.match(/x\.com\/([^\/]+)\/status\//);
+  
+  // Return username if found, false otherwise
+  return match ? match[1] : false;
+};
+
 const tweetStorage = new TweetStorage()
 const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const parentElement = anchor.element.parentElement
   const tweetElement = parentElement.querySelector("article")
   const tweetData = scrapeTweet(tweetElement)
+  const openXUsername = extractXUsername(window.location.href)
 
   const [userRelationshipStatus, setUserRelationshipStatus] = useState({
     isMutual: false,
@@ -145,6 +155,10 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     } else if (userRelationshipStatus.isFollower) {
       TweetEnhancements.enhanceFollowerTweet(tweetElement)
     }
+  }
+
+  if(openXUsername === tweetData.author.handle) {
+    TweetEnhancements.enhanceOriginalPoster(tweetElement)
   }
 
   //NotEndorsedAnymore(tweetElement)
