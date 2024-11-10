@@ -66,6 +66,36 @@ function SearchTab() {
       {JSON.stringify(params, null, 2)}
       {data.length}
       {isInputFocused && <SearchHelpText />}
+      <button
+        onClick={() => {
+          const tweetInfo = data.map(tweet => 
+            `${tweet.username} (${tweet.account_display_name}): ${tweet.full_text}`
+          ).join('\n\n');
+          navigator.clipboard.writeText(tweetInfo);
+        }}
+        className="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition-colors duration-200"
+      >
+        Copy Tweet Info to Clipboard
+      </button>
+      <button
+        onClick={() => {
+          const tweetInfo = data.map(tweet => 
+            `${tweet.username} (${tweet.account_display_name}): ${tweet.full_text}`
+          ).join('\n\n');
+          const blob = new Blob([tweetInfo], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'tweets.txt';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }}
+        className="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition-colors duration-200"
+      >
+        Download Tweet Info as TXT
+      </button>
       <TweetList data={data} />
     </>
   )
