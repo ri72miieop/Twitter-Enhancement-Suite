@@ -23,7 +23,7 @@ interface ChatMessage {
 }
 
 
-
+//todo there should exist a list on top with all the chatrooms OPEN and available for the user (ex: theirs and the ones ppl they follow are admins)
 const ChatRoom = () => {
   const [chatroom, setChatroom] = useState<ChatRoom | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
