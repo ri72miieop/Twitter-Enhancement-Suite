@@ -32,12 +32,12 @@ const navOptions = [
     description: "Same day and month; different year. Both your own tweets and your faves.",
     component: OnThisDay
   },
-  { 
-    key: "chatroom", 
-    label: "Chatroom", 
-    description: "Chat with this user.",
-    component: ChatRoom
-  },
+  //{ 
+  //  key: "chatroom", 
+  //  label: "Chatroom", 
+  //  description: "Chat with this user.",
+  //  component: ChatRoom
+  //},
 ]
 
 function IndexSidePanel() {
