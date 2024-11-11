@@ -25,39 +25,52 @@ function HighlightsTab() {
         currentWindow: true
       })
       const currentTab = tabs[0]
-
       if (currentTab?.url) {
         const currentUrl = currentTab.url
         const currentTitle = currentTab.title
-
         DevLog(`Initial URL: ${currentUrl}`)
         const username = extractXUsername(currentUrl)
         setUsername(username)
         setUrl(currentUrl)
       }
     }
-
+  
     const updateUsernameFromUrl = async (url: string) => {
       DevLog(`Current URL: ${url}`)
       const username = extractXUsername(url)
       setUsername(username)
       setUrl(url)
     }
-
+  
     // Initial update
     updateUsername()
-
-    // Listen for tab updates
-    const tabUpdateListener = (tabId, changeInfo, tab) => {
+  
+    // Listen for URL changes in any tab
+    const tabUpdateListener = (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
       if (changeInfo.url) {
-        updateUsernameFromUrl(changeInfo.url)
+        // Only update if the changed tab is the active one
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.id === tabId) {
+            updateUsernameFromUrl(changeInfo.url)
+          }
+        })
       }
     }
-
+  
+    // Listen for tab switches
+    const tabActivatedListener = async (activeInfo: chrome.tabs.TabActiveInfo) => {
+      const tab = await chrome.tabs.get(activeInfo.tabId)
+      if (tab.url) {
+        updateUsernameFromUrl(tab.url)
+      }
+    }
+  
     chrome.tabs.onUpdated.addListener(tabUpdateListener)
-
+    chrome.tabs.onActivated.addListener(tabActivatedListener)
+  
     return () => {
       chrome.tabs.onUpdated.removeListener(tabUpdateListener)
+      chrome.tabs.onActivated.removeListener(tabActivatedListener)
     }
   }, [])
 
