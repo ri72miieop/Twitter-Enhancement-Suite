@@ -3,7 +3,7 @@ import type { PlasmoCSConfig } from "plasmo"
 import { DevLog } from "~utils/devUtils"
 
 export const config: PlasmoCSConfig = {
-  matches: ["https://*.x.com/*"],
+  matches: ["https://*.x.com/ISTHISON/1*"],
   css: ["font.css"]
 }
 
@@ -21,7 +21,7 @@ const XOverlay = () => {
       style={{
         padding: 12
       }}>
-      CSUI OVERLAY FIXED POSITION
+      TES - OVERLAY FIXED POSITION
     </span>
   )
 }
