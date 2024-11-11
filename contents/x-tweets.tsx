@@ -25,6 +25,8 @@ export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
 //import "~/prod.css"
 
 export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
+  //disable it for now
+  return [];
   const anchors = document.querySelectorAll("article")
   return Array.from(anchors).map((element) => {
     return {
