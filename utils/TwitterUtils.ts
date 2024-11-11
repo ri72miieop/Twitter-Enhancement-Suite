@@ -23,7 +23,7 @@ export function extractXUsername(url: string) {
 
         // Username should be the first part after the domain
         // Verify it's not a reserved path like 'status', 'home', etc.
-        const reservedPaths = ['status', 'home', 'explore', 'notifications', 'messages'];
+        const reservedPaths = ['status', 'home', 'explore', 'notifications', 'messages','i'];
         if (pathParts.length > 0 && !reservedPaths.includes(pathParts[0])) {
             return pathParts[0];
         }
