@@ -1,5 +1,6 @@
 import cssText from "data-text:~/contents/X-overlay.css"
 import type { PlasmoCSConfig } from "plasmo"
+import { DevLog } from "~utils/devUtils"
 
 export const config: PlasmoCSConfig = {
   matches: ["https://*.x.com/*"],
@@ -13,6 +14,7 @@ export const getStyle = () => {
 }
 
 const XOverlay = () => {
+  DevLog("XOverlay")
   return (
     <span
       className="hw-top"

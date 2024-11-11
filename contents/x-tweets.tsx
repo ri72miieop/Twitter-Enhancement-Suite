@@ -17,6 +17,7 @@ import { TweetEnhancements } from "~utils/TweetEnhancements"
 import { scrapeTweet } from "./scrapeTweet"
 import { GlobalCachedData } from "./Storage/CachedData"
 import TweetStorage from "./Storage/TweetsStorage"
+import { DevLog } from "~utils/devUtils"
 
 export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
   element.getAttribute("aria-labelledby") + `-xtweets`
@@ -74,6 +75,8 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const tweetData = scrapeTweet(tweetElement)
   const openXUsername = extractXUsername(window.location.href)
 
+  DevLog("XTweet " + tweetData.id + " " + tweetData.author.handle)
+
   const [userRelationshipStatus, setUserRelationshipStatus] = useState({
     isMutual: false,
     isFollowed: false,
@@ -126,15 +129,15 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
             (follower) => follower.username === tweetData.author.handle
           )
         })
-        //console.log("followers",JSON.stringify(followers))
+        //DevLog("followers",JSON.stringify(followers))
       } catch (error) {
-        console.error("Error fetching relationship data:", error)
+        DevLog("Error fetching relationship data:" + error, "error")
       }
     }
     if (!userId) {
       getUser().then((i) => {
         setUserId(i.id)
-        console.log("userId", i.id)
+        DevLog("userId " + i.id, "debug")
       })
     }
 
@@ -142,7 +145,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       checkRelationships()
     }
   }, [tweetData.id, tweetElement, userId])
-  //console.log(tweetData);
+  //DevLog(tweetData);
   if (tweetData.engagement.likes > 100000) {
     parentElement.innerHTML = `<div> too many likes </div>`
   }

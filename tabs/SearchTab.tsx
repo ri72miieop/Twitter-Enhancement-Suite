@@ -3,6 +3,7 @@ import { supabase } from "~core/supabase"
 import TweetList from "../components/TweetList"
 import { parseQuery, buildSupabaseQuery } from "../utils/searchUtils"
 import { getSignedInUser } from "~utils/dbUtils"
+import { DevLog } from "~utils/devUtils"
 
 function SearchTab() {
   const [data, setData] = useState<any[]>([])
@@ -22,7 +23,7 @@ function SearchTab() {
           const signedInUser = await getSignedInUser();
           if(signedInUser) {
             params.auth_account_id = signedInUser.id;
-            console.log("signedInUser", signedInUser)
+            DevLog("signedInUser " + signedInUser.id, "debug")
           }
         }
         setParams(params)
@@ -42,7 +43,7 @@ function SearchTab() {
           tweet.avatar_media_url = tweet.avatar_media_url || "assets/custom/nopfp2_4832.jpg";
           
         })
-        console.log(JSON.stringify(data, null, 2))
+        DevLog(JSON.stringify(data, null, 2))
         setData(data)
       }
 

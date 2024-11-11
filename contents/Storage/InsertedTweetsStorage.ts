@@ -1,5 +1,6 @@
 import { Storage } from "@plasmohq/storage"
 import { Mutex } from "async-mutex"
+import { DevLog } from "~utils/devUtils"
 
 
 interface InsertedTweet {
@@ -41,7 +42,7 @@ class InsertedTweetStorage {
 
       await this.saveTweet(tweet)
 
-      console.log("Inserted tweet", tweet.id)
+      DevLog("Inserted tweet " + tweet.id, "info")
     
 
   }

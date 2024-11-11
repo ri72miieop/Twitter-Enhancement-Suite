@@ -2,6 +2,7 @@ import { Storage } from "@plasmohq/storage"
 import type { ScrapedTweet } from "../scrapeTweet"
 import InsertedTweetStorage from "./InsertedTweetsStorage"
 import { Mutex } from 'async-mutex';
+import { DevLog } from "~utils/devUtils";
 class TweetStorage {
   private static storage: Storage = new Storage({
     area: "local"
@@ -42,7 +43,7 @@ class TweetStorage {
   //  
   //    await TweetStorage.storage.set(TweetStorage.TWEETS_KEY, TweetStorage.tweetsCache)
   //  
-  //  console.log("saved tweets", TweetStorage.tweetsCache?.length)
+  //  DevLog("saved tweets", TweetStorage.tweetsCache?.length)
   //}
 
 
@@ -57,7 +58,7 @@ class TweetStorage {
           const tweets = await TweetStorage.getTweets();
           tweets.push(tweet);
           await TweetStorage.storage.set(TweetStorage.TWEETS_KEY, tweets);
-          console.log(tweets.length, "->", "added tweet", tweet.id);
+          DevLog(tweets.length + "-> added tweet " + tweet.id, "info");
         
       } finally {
         // Always release the mutex lock

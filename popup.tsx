@@ -6,6 +6,7 @@ import { Storage } from "@plasmohq/storage"
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { supabase } from "~core/supabase"
+import { DevLog } from "~utils/devUtils"
 
 function PopupOptions() {
   const [user, setUser] = useStorage<User>({
@@ -66,6 +67,7 @@ function PopupOptions() {
       }
     } catch (error) {
       console.log("error", error)
+      DevLog("error", error)
       alert(error.error_description || error)
     }
   }

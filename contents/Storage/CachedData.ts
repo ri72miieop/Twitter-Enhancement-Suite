@@ -1,6 +1,7 @@
 import { Storage } from "@plasmohq/storage"
 import type { ScrapedTweet } from "~contents/scrapeTweet";
 import { supabase } from "~core/supabase";
+import { DevLog } from "~utils/devUtils";
 
 
 export interface UserData {
@@ -50,18 +51,18 @@ class CachedData {
     // First check in-memory cache
     const cachedData = CachedData.inMemoryCache[key];
     if (cachedData && cachedData.last_updated >= Date.now() - CachedData.CACHE_EXPIRATION) {
-      console.log(`Cache hit for key: ${key}`);
+      DevLog(`Cache hit for key: ${key}`);
       return cachedData.data;
     }
 
     // If there's already a pending request for this key, return its promise
     if (CachedData.pendingRequests[key]) {
-      console.log(`Request already pending for key: ${key}`);
+      DevLog(`Request already pending for key: ${key}`);
       return CachedData.pendingRequests[key];
     }
 
     // Create new request promise
-    console.log(`Cache miss for key: ${key}, fetching from Supabase`);
+    DevLog(`Cache miss for key: ${key}, fetching from Supabase`);
     CachedData.pendingRequests[key] = (async () => {
       try {
         const data = await fetchFunction();

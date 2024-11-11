@@ -5,6 +5,7 @@ import Tweet from "~components/Tweet"
 import TweetList from "~components/TweetList"
 import { supabase } from "~core/supabase"
 import { fetchTopTweetsByUser } from "~utils/dbUtils"
+import { DevLog } from "~utils/devUtils"
 import { extractXUsername } from "~utils/TwitterUtils"
 
 
@@ -23,18 +24,18 @@ function HighlightsTab() {
           const currentUrl = currentTab.url;
           const currentTitle = currentTab.title;
       
-          console.log(`Current URL: ${currentUrl}`);
+          DevLog(`Current URL: ${currentUrl}`);
 
           const username = extractXUsername(currentUrl)
           setUsername(username);
           setUrl(currentUrl)
-          console.log(`Current Title: ${currentTitle}`);
+          DevLog(`Current Title: ${currentTitle}`);
       });
         
       }
 
       updateUsername()
-      console.log("updateUsername",window.location)
+      DevLog("updateUsername" + window.location)
 
     },[window.location])
 
@@ -47,11 +48,11 @@ function HighlightsTab() {
           const {data,error} = await supabase.from('account').select('account_id,username,account_display_name').eq('username',username).single()
           if(data && !error){
             setUsernameExistsInCA(true)
-            console.log("username exists in CA")
+            DevLog("username exists in CA")
           }
           else{
             setUsernameExistsInCA(false)
-            console.log("username doesn't exist in CA")
+            DevLog("username doesn't exist in CA")
           }
         }
       }
@@ -65,10 +66,10 @@ function HighlightsTab() {
           
 
 
-          console.log(JSON.stringify(url, null, 2))
-            console.log("fetching data")
+          DevLog(JSON.stringify(url, null, 2))
+            DevLog("fetching data")
             const data = await fetchTopTweetsByUser(username)
-            console.log(data)
+            DevLog(data)
             const tweetData = {
                 // liked: data.most_liked_tweets_by_archive_users,
                 // replied: data.most_replied_tweets_by_archive_users,
@@ -80,7 +81,7 @@ function HighlightsTab() {
             const {data:account} = await supabase.from('account').select('account_id,username,account_display_name').eq('username',username);
             const {data:profile} = await supabase.from('profile').select('*').eq('account_id',account[0].account_id);
 
-            console.log(tweetData.favorited);
+            DevLog("tweetData.favorited " + JSON.stringify(tweetData.favorited));
             for(let i = 0; i < tweetData.favorited.length; i++){
 
               tweetData.favorited[i].avatar_media_url = profile[0].avatar_media_url;

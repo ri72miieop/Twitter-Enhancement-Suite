@@ -6,6 +6,10 @@ import { Storage } from "@plasmohq/storage"
 import { useStorage } from "@plasmohq/storage/hook"
 
 import { supabase } from "~core/supabase"
+import { GlobalCachedData } from "~contents/Storage/CachedData"
+import { DevLog } from "~utils/devUtils"
+
+
 
 function IndexOptions() {
   const [user, setUser] = useStorage<User>({
@@ -63,28 +67,41 @@ function IndexOptions() {
       } else if (!user) {
         alert("Signup successful, confirmation mail should be sent soon!")
       } else {
+        DevLog("user " + user.id, "debug")
+        
         setUser(user)
       }
     } catch (error) {
-      console.log("error", error)
+      DevLog("error " + error, "error")
       alert(error.error_description || error)
     }
   }
 
-  const handleOAuthLogin = async (provider: Provider, scopes = "email") => {
-    await supabase.auth.signInWithOAuth({
+  const handleOAuthLogin = async (provider: Provider) => {
+    DevLog("redirectTo " + location.href, "debug")
+    const { data,error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        scopes,
         redirectTo: location.href
       }
+
+      
     })
+
+    if (error) {
+      alert("Error with auth: " + error.message)
+    }
+    if(data){
+      DevLog("data " + data, "debug")
+    }
+  }
+
   const handleCacheReset = async () => {
     try {
       await GlobalCachedData.ResetAllCache()
       alert("Cache reset successful!")
     } catch (error) {
-      console.error("Error resetting cache:", error)
+      DevLog("Error resetting cache:" + error, "error")
       alert("Error resetting cache")
     }
   }
@@ -158,9 +175,9 @@ function IndexOptions() {
 
             <button
               onClick={(e) => {
-                handleOAuthLogin("github")
+                handleOAuthLogin("twitter")
               }}>
-              Sign in with GitHub
+              Sign in with Twitter
             </button>
           </>
         )}

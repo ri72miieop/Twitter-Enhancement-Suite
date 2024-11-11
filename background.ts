@@ -1,5 +1,6 @@
 import { supabase } from "~core/supabase"
 import TweetStorage from "./contents/Storage/TweetsStorage"
+import { DevLog } from "~utils/devUtils"
 
 
 //rome.webRequest.onBeforeRequest.addListener(
@@ -62,12 +63,12 @@ console.log(
 async function processTweets() {
   const tweetStorage = new TweetStorage()
   const tweets = await tweetStorage.getAllTweets()
-  console.log("Processing ",tweets.length)
+  DevLog("Processing " + tweets.length + " tweets")
   
   for (const tweet of tweets) {
     try {
       // For now, processing is just logging the tweet
-      console.log("Processing tweet:", tweet.id)
+      DevLog("Processing tweet:" + tweet.id)
 
 
       const itemToInsert = {
@@ -85,12 +86,12 @@ async function processTweets() {
 
       const {data,error} = await supabase.from("import_tweets").insert(itemToInsert).select()
       if(error)
-        console.log(JSON.stringify(error))
+        DevLog(JSON.stringify(error))
       
       // Mark the tweet as saved after processing
       await tweetStorage.markAsSaved(tweet.id)
     } catch (error) {
-      console.error("Error processing tweet:", error)
+      DevLog("Error processing tweet:" + error)
     }
   }
 }

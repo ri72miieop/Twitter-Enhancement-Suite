@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "~core/supabase";
 import UserInfo from "~components/ui/Chat/UserInfo";
 import { Send, Loader2, X, Plus } from "lucide-react";
+import { DevLog } from "~utils/devUtils";
 
 
 
@@ -44,7 +45,7 @@ const ChatRoom = () => {
       const {data :chatData, error :chatError } = await supabase.from("chatroom").select("*").eq("user_admin", testUserId).eq("state","OPEN").order("created_at", { ascending: true });
       
       if(chatData && chatData.length > 0){
-        console.log(JSON.stringify(chatData));
+        DevLog(JSON.stringify(chatData));
         setChatroom(chatData[0]);
         setChannelId(chatData[0].id);
 
@@ -54,7 +55,7 @@ const ChatRoom = () => {
           .eq("chatroom_id", channelId)
           .order("created_at", { ascending: true });
         
-        if (error) console.log(JSON.stringify(error));
+        if (error) DevLog(JSON.stringify(error));
         setMessages(data);
       }
       setIsLoading(false);

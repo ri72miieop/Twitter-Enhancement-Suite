@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { getUser } from "~utils/dbUtils"
 import { GlobalCachedData } from "./Storage/CachedData"
 import { VirtualRoom } from "~components/VirtualRoom/VirtualRoom"
+import { DevLog } from "~utils/devUtils"
 
 export const config: PlasmoCSConfig = {
     matches: ["https://*.x.com/MakeTwitterGreatAgain/moots"],
@@ -28,7 +29,7 @@ const MootsPage = ({ anchor }: PlasmoCSUIProps) => {
     useEffect(() => {
         async function loadMoots() {
             const user = await getUser();
-            console.log(user);
+            DevLog("user " + JSON.stringify(user), "debug");
             if(!user.id) return;
             const mootsList = await GlobalCachedData.GetMoots(user.id);
             setMoots(mootsList);
