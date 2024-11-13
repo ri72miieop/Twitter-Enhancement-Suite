@@ -14,12 +14,12 @@ const navOptions = [
     description: "See this user's most liked tweets of all time.",
     component: HighlightsTab
   },
-  { 
-    key: "ourConversations", 
-    label: "Our Conversations", 
-    description: "See previous conversations between you and this user.",
-    component: OurConversationsTab
-  },
+  //{ 
+  //  key: "ourConversations", 
+  //  label: "Our Conversations", 
+  //  description: "See previous conversations between you and this user.",
+  //  component: OurConversationsTab
+  //},
   { 
     key: "search", 
     label: "Search", 
