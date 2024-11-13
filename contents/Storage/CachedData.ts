@@ -115,7 +115,7 @@ class CachedData {
   async GetMoots(userid: string): Promise<User[]> {
     const key = CachedData.moots + userid;
     return this.fetchAndCache<User[]>(key, async () => {
-        const { data, error } = await supabase.rpc("get_moots", { user_id: userid });
+        const { data, error } = await supabase.rpc("tes_get_moots", { user_id: userid });
         if (error) throw error;
         return data.map(moot => ({ user_id: moot.user_id, username: moot.username }));
     });
@@ -124,7 +124,7 @@ class CachedData {
   async GetFollowers(userid : string) :Promise<User[]>{
     const key = CachedData.followers + userid
    return this.fetchAndCache<User[]>(key, async () => {
-      const {data, error} = await supabase.rpc("get_followers", {user_id: userid})
+      const {data, error} = await supabase.rpc("tes_get_followers", {user_id: userid})
       if(error) throw error
       return data.map(follower => ({user_id: follower.user_id, username: follower.username}))
     })
@@ -132,7 +132,7 @@ class CachedData {
   async GetFollows(userid : string) :Promise<User[]>{
     const key = CachedData.follows + userid
     return this.fetchAndCache<User[]>(key, async () => {
-      const {data, error} = await supabase.rpc("get_followings", {user_id: userid})
+      const {data, error} = await supabase.rpc("tes_get_followings", {user_id: userid})
       if(error) throw error
       return data.map(following => ({user_id: following.user_id, username: following.username}))
     })

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import Tweet from "~components/Tweet"
 import { supabase } from "~core/supabase"
 import { getUser } from "~utils/dbUtils"
+import { DevLog } from "~utils/devUtils"
 
 function OnThisDay() {
   const [tweets, setTweets] = useState<any[]>([])
@@ -17,10 +18,13 @@ function OnThisDay() {
       } else {
         setIsUserSignedIn(true)
       }
-      const { data, error } = await supabase.rpc("get_tweets_on_this_day", {
+      const { data, error } = await supabase.rpc("tes_get_tweets_on_this_day", {
         p_account_id: user.id,
         p_limit: 100
       })
+      if(error) {
+        DevLog(JSON.stringify(error),"error")
+      }
       setTweets(data)
     }
 

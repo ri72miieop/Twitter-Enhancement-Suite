@@ -19,16 +19,18 @@ function SearchTab() {
         const terms = parseQuery(search)
         const params = buildSupabaseQuery(terms)
         
-        if(params.include_likes) {
+        let rpcFunction = "tes_search_tweets";
+        if(params.from_likes) {
           const signedInUser = await getSignedInUser();
           if(signedInUser) {
             params.auth_account_id = signedInUser.id;
             DevLog("signedInUser " + signedInUser.id, "debug")
           }
+          delete params.from_likes;
+          rpcFunction = "tes_search_liked_tweets";
         }
         setParams(params)
         
-        const rpcFunction = params.include_likes ? "search_liked_tweets" : "search_tweets"
         setData([])
         const { data, error } = await supabase.rpc(rpcFunction, params)
 
@@ -115,7 +117,7 @@ function SearchHelpText() {
         - Min retweets » min_retweets:100<br />
         - Min likes » min_faves:500<br />
         - Language » lang:en
-        - Search only on your likes  include_likes:true
+        - Search only on your likes  from_likes:true
       </small>
     </div>
   )
