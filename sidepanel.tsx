@@ -7,6 +7,7 @@ import "./prod.css"
 import OnThisDay from "~tabs/OnThisDay"
 import ChatRoom from "~tabs/Chatroom"
 
+
 const navOptions = [
   { 
     key: "highlights", 
@@ -40,7 +41,9 @@ const navOptions = [
   //},
 ]
 
-function IndexSidePanel() {
+const IndexSidePanel = () => {
+
+
   const [activeOption, setActiveOption] = useState(navOptions[0].key)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
