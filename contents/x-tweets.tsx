@@ -59,7 +59,7 @@ const ChangeBackgroundColor = (element: HTMLElement, color: string) => {
   element.style["background-color"] = color
 }
 
-const isDev = process.env.environment === "dev"
+const isDev = process.env.NODE_ENV === "development"
 
 
 const extractXUsername = (url: string): string | false => {
