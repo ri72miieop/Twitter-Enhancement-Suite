@@ -9,8 +9,9 @@ import posthog from "~core/posthog"
 function SearchTab() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState("")
-  const [params, setParams] = useState<any>({})
   const [isInputFocused, setIsInputFocused] = useState(false)
+  const [signedInUser, setSignedInUser] = useState<any>(getSignedInUser())
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const debounceTimeout = setTimeout(async () => {
@@ -22,7 +23,10 @@ function SearchTab() {
         
         let rpcFunction = "tes_search_tweets";
         if(params.from_likes) {
-          const signedInUser = await getSignedInUser();
+          if(!signedInUser) {
+            setSignedInUser(getSignedInUser())
+          }
+          
           if(signedInUser) {
             params.auth_account_id = signedInUser.id;
             DevLog("signedInUser " + signedInUser.id, "debug")
@@ -30,17 +34,19 @@ function SearchTab() {
           delete params.from_likes;
           rpcFunction = "tes_search_liked_tweets";
         }
-        setParams(params)
         
         setData([])
+        if(errorMsg) setErrorMsg(null)
         const { data, error } = await supabase.rpc(rpcFunction, params)
 
         if (error) {
           console.error(JSON.stringify(error, null, 2))
           setData([])
+          //setErrorMsg(`Error fetching tweets: ${error.message}`)
           posthog.capture('searched_tweets',{"query":params,rpcFunction:rpcFunction,"account_id":signedInUser?.id, "error":error.message})
           return
         }
+
         posthog.capture('searched_tweets',{"query":params,rpcFunction:rpcFunction,"account_id":signedInUser?.id, "count":data?.length||0})
         data.forEach((tweet) => {
           tweet.username = tweet.username || "unknown";
@@ -69,8 +75,11 @@ function SearchTab() {
         onBlur={() => setIsInputFocused(false)}
         style={{ marginBottom: 16, padding: 8 }}
       />
-      {JSON.stringify(params, null, 2)}
-      {data.length}
+      {errorMsg && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          {errorMsg}
+        </div>
+      )}
       {isInputFocused && <SearchHelpText />}
       <button
         onClick={() => {
