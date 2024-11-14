@@ -19,10 +19,12 @@ function OnThisDay() {
       } else {
         setIsUserSignedIn(true)
       }
-      const { data, error } = await supabase.rpc("tes_get_tweets_on_this_day", {
+      const { data: rawData, error } = await supabase.rpc("tes_get_tweets_on_this_day", {
         p_account_id: user.id,
         p_limit: 100
       })
+      //TODO: remove deduplicate TEMP SOLUTION
+      const data = rawData ? [...new Map(rawData.map(item => [item.tweet_id, item])).values()] : []
       if(error) {
         DevLog(JSON.stringify(error),"error")
       }
@@ -30,7 +32,7 @@ function OnThisDay() {
       
       setTweets(data)
     }
-
+    
     fetchData()
   }, [])
 
