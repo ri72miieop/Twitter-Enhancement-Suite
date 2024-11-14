@@ -4,6 +4,7 @@ import Tweet from "~components/Tweet"
 import { supabase } from "~core/supabase"
 import { getUser } from "~utils/dbUtils"
 import { DevLog } from "~utils/devUtils"
+import posthog from '~core/posthog'
 
 function OnThisDay() {
   const [tweets, setTweets] = useState<any[]>([])
@@ -25,6 +26,8 @@ function OnThisDay() {
       if(error) {
         DevLog(JSON.stringify(error),"error")
       }
+      posthog.capture('viewed_on_this_day',{"account_id":user.id})
+      
       setTweets(data)
     }
 

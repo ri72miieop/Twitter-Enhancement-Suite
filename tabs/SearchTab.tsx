@@ -4,6 +4,7 @@ import TweetList from "../components/TweetList"
 import { parseQuery, buildSupabaseQuery } from "../utils/searchUtils"
 import { getSignedInUser } from "~utils/dbUtils"
 import { DevLog } from "~utils/devUtils"
+import posthog from "~core/posthog"
 
 function SearchTab() {
   const [data, setData] = useState<any[]>([])
@@ -37,8 +38,10 @@ function SearchTab() {
         if (error) {
           console.error(JSON.stringify(error, null, 2))
           setData([])
+          posthog.capture('searched_tweets',{"query":params,rpcFunction:rpcFunction,"account_id":signedInUser?.id, "error":error.message})
           return
         }
+        posthog.capture('searched_tweets',{"query":params,rpcFunction:rpcFunction,"account_id":signedInUser?.id, "count":data?.length||0})
         data.forEach((tweet) => {
           tweet.username = tweet.username || "unknown";
           tweet.account_display_name = tweet.account_display_name || "unknown";
