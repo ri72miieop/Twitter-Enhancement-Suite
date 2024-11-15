@@ -6,6 +6,7 @@ import OurConversationsTab from "./tabs/OurConversationsTab"
 import "./prod.css"
 import OnThisDay from "~tabs/OnThisDay"
 import ChatRoom from "~tabs/Chatroom"
+import FeedbackTab from "~tabs/FeedbackTab"
 
 
 const navOptions = [
@@ -39,6 +40,12 @@ const navOptions = [
   //  description: "Chat with this user.",
   //  component: ChatRoom
   //},
+  {
+    key: "feedback",
+    label: "Feedback",
+    description: "Send feedback to the developer.",
+    component: FeedbackTab
+  }
 ]
 
 const IndexSidePanel = () => {
