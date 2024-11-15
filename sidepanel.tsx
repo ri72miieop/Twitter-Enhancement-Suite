@@ -6,6 +6,7 @@ import OurConversationsTab from "./tabs/OurConversationsTab"
 import "./prod.css"
 import OnThisDay from "~tabs/OnThisDay"
 import ChatRoom from "~tabs/Chatroom"
+import { getUser } from "~utils/dbUtils"
 import FeedbackTab from "~tabs/FeedbackTab"
 
 
@@ -54,10 +55,14 @@ const IndexSidePanel = () => {
   const [activeOption, setActiveOption] = useState(navOptions[0].key)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const [user, setUser] = useState(getUser())
+
 
   const currentIndex = navOptions.findIndex(option => option.key === activeOption)
   const prevOption = navOptions[(currentIndex - 1 + navOptions.length) % navOptions.length]
   const nextOption = navOptions[(currentIndex + 1) % navOptions.length]
+
+
 
   const handleOptionChange = (direction) => {
     const newIndex = (currentIndex + direction + navOptions.length) % navOptions.length
@@ -72,11 +77,15 @@ const IndexSidePanel = () => {
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
+    
   }, [])
 
   const ActiveComponent = navOptions.find(option => option.key === activeOption)?.component || null
 
-  return (
+  return (<>
+  {user && (
+
+  
     <div style={{ display: "flex", flexDirection: "column", height: "90vh", padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
@@ -117,6 +126,20 @@ const IndexSidePanel = () => {
       </div>
       {ActiveComponent && <ActiveComponent />}
     </div>
+    )}
+    {!user && (
+      <div className="flex flex-col items-center justify-center h-[90vh] p-4 text-center">
+        <p className="text-gray-600 mb-2">Please</p>
+        <button
+          onClick={() => chrome.runtime.openOptionsPage()}
+          className="text-blue-500 hover:text-blue-600 font-medium underline underline-offset-2 transition-colors"
+        >
+          sign in
+        </button>
+        <p className="text-gray-600 mt-2">to use the extension features.</p>
+      </div>
+    )}
+    </>
   )
 }
 
