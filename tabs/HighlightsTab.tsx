@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
 import AccountTopTweetsClient from "~components/AccountTopTweetsClient"
-import PageChangeDetector from "~components/PageChanger"
+
 import Tweet from "~components/Tweet"
 import TweetList from "~components/TweetList"
 import { supabase } from "~core/supabase"
