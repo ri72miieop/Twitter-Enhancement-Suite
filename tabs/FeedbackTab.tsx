@@ -1,5 +1,5 @@
 import { sendToBackground } from "@plasmohq/messaging"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { getUser } from "~utils/dbUtils"
 import { DevLog } from "~utils/devUtils"
 
@@ -10,16 +10,21 @@ function FeedbackPage() {
   const [feedback, setFeedback] = useState("")
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [user, setUser] = useState<{id: any, username: any} | null>(null)
+
+  useEffect(() => {
+    getUser().then(user => {
+      if(!user) return
+      setUser(user)
+    })
+  }, [])
 
   const sendFeedback = async () => {
     if (!feedback.trim()) return
     
+    if(!user) return
     setSending(true)
     try {
- 
-      const user = await getUser();
-      if(!user){DevLog("No user found"); return}
-      
       const res = await sendToBackground({
         name: "send-feedback",
         body: {
@@ -38,6 +43,8 @@ function FeedbackPage() {
       setSending(false)
     }
   }
+
+  if(!user) return <div>Please sign in to send feedback</div>
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
