@@ -11,7 +11,7 @@ import { DevLog } from "~utils/devUtils"
 
 import "prod.css"
 import posthog from "~core/posthog"
-
+import { EXTENSION_ID } from "~utils/consts"
 
 const LoadingSpinner = () => (
   <svg 
@@ -140,7 +140,7 @@ const SignIn = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "twitter",
         options: {
-          redirectTo: `chrome-extension://${process.env.CRX_ID}/options.html`
+          redirectTo: `chrome-extension://${EXTENSION_ID}/options.html`
         }
       });
 
