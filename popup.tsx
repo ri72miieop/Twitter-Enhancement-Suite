@@ -9,28 +9,13 @@ import { supabase } from "~core/supabase"
 import { DevLog } from "~utils/devUtils"
 import SignIn from "~components/SignIn"
 
-function PopupOptions() {
-  return <>
-  
-  <main
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        top: 20,
-        position: "relative"
-      }}>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          width: 240,
-          justifyContent: "space-between",
-          gap: 4.2
-        }}><SignIn /> </div>
-  </main>
-  </>
+const Popup = () => {
+  useEffect(() => {
+    chrome.runtime.openOptionsPage()
+    window.close()
+  }, [])
+
+  return null
 }
 
-export default PopupOptions
+export default Popup
