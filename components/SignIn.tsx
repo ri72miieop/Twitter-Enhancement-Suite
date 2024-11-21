@@ -46,7 +46,7 @@ const Button = ({
 }) => {
   const baseStyles = "flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    primary: "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800",
+    primary: "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
     secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400",
     outline: "border-2 border-gray-300 hover:bg-gray-100 active:bg-gray-200",
     twitter: "bg-[#1DA1F2] text-white hover:bg-[#1a8cd8] active:bg-[#177bbf]"
@@ -65,7 +65,8 @@ const Button = ({
 };
 
 const SignIn = () => {
-  const isDev = process.env.environment === "development";
+  const isDev = process.env.NODE_ENV === "development";
+
   const [user, setUser] = useStorage({
     key: "user",
     instance: new Storage({ area: "local" })
@@ -139,7 +140,7 @@ const SignIn = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "twitter",
         options: {
-          redirectTo: location.href
+          redirectTo: `chrome-extension://${process.env.CRX_ID}/options.html`
         }
       });
 
@@ -147,7 +148,7 @@ const SignIn = () => {
         setError(error.message);
       }
       if (data) {
-        DevLog("data " + JSON.stringify(data), "debug");
+        console.log("data " + JSON.stringify(data), "debug");
       }
     } catch (error) {
       setError(error.message);
@@ -188,8 +189,8 @@ const SignIn = () => {
           <div className="bg-white rounded-lg shadow-md p-8">
             <div className="space-y-4">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">Account</h2>
-                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                <h2 className="text-xl font-semibold text-gray-800">Hi</h2>
+                <p className="text-sm text-gray-500 truncate">@{user.app_metadata.user_name}</p>
               </div>
               <div className="space-y-3 max-w-[380px] mx-auto">
                 <Button
@@ -232,7 +233,7 @@ const SignIn = () => {
               </div>
             )}
 
-            {!isDev && (
+            {isDev && (
               <div className="space-y-4">
                 <div className="max-w-[380px] mx-auto">
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -263,7 +264,7 @@ const SignIn = () => {
                 </div>
 
                 <div className="space-y-3 max-w-[380px] mx-auto">
-                  <Button
+                  <Button variant="outline"
                     className="w-full"
                     onClick={() => handleEmailLogin("LOGIN")}
                     loading={loading}
