@@ -9,7 +9,7 @@ import { fetchTopTweetsByUser } from "~utils/dbUtils"
 import { DevLog } from "~utils/devUtils"
 import { extractXUsername } from "~utils/TwitterUtils"
 
-function HighlightsTab() {
+function TopTweetsTab() {
   const [topTweets, setTopTweets] = useState<any[]>(null)
   const [url, setUrl] = useState<string>(null)
   const [username, setUsername] = useState<string>(null)
@@ -158,4 +158,4 @@ function HighlightsTab() {
   )
 }
 
-export default HighlightsTab
+export default TopTweetsTab

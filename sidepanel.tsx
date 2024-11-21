@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import SearchTab from "./tabs/SearchTab"
-import HighlightsTab from "./tabs/HighlightsTab"
+import TopTweetsTab from "./tabs/TopTweetsTab"
 import OurConversationsTab from "./tabs/OurConversationsTab"
 
 import "./prod.css"
@@ -8,14 +8,16 @@ import OnThisDay from "~tabs/OnThisDay"
 import ChatRoom from "~tabs/Chatroom"
 import { getUser } from "~utils/dbUtils"
 import FeedbackTab from "~tabs/FeedbackTab"
+import { supabase } from "~core/supabase"
+import { DevLog } from "~utils/devUtils"
 
 
 const navOptions = [
   { 
-    key: "highlights", 
-    label: "Highlights", 
-    description: "See this user's most liked tweets of all time.",
-    component: HighlightsTab
+    key: "toptweets", 
+    label: "Top Tweets", 
+    description: "The most liked tweets of all time from this user.",
+    component: TopTweetsTab
   },
   //{ 
   //  key: "ourConversations", 
