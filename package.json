@@ -5,9 +5,9 @@
   "description": "An extension to enhance your Twitter experience.",
   "author": "IaimforGOAT",
   "scripts": {
-    "dev": "plasmo dev",
-    "build": "plasmo build",
-    "package": "plasmo package",
+    "dev": "plasmo dev --entry=options --env=.env.development",
+    "build": "plasmo build --env=.env.development",
+    "package": "plasmo package --env=.env.development",
     "tailwind": "npx tailwindcss -i ./input.css -o ./prod.css",
     "tailwind:watch": "npx tailwindcss -i ./input.css -o ./prod.css --watch",
     "dev:firefox": "plasmo dev --target=firefox-mv2",
@@ -60,15 +60,13 @@
   "manifest": {
     "key": "$CRX_KEY",
     "permissions": [
-      "webRequest",
       "storage",
       "tabs",
-      "activeTab"
+      "activeTab",
+      "https://*.twitter.com/*",
+      "https://*.x.com/*"
     ],
-    "host_permissions": [
-      "https://*/*",
-       "https://*.posthog.com/*"
-    ],
+
     "web_accessible_resources": [
       {
         "resources": [
