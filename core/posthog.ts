@@ -1,7 +1,8 @@
 //import posthog from 'posthog-js'
 
 
-import posthog from 'posthog-js/dist/module.full.no-external'
+//import posthog from 'posthog-js/dist/module.full.no-external'  -- this is the full version with session replays etc, but it's getting the extension rejected on chrome web store for code obfuscation due to posthog external dependencies
+import posthog from 'posthog-js/dist/module.no-external'
 
 posthog.init('phc_Kx915GiGlAxeIzwWrQjJES94boCJbSCiBbRDykXI35N',
     {
