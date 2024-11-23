@@ -1,3 +1,7 @@
+import React, { type SVGAttributes } from 'react';
+import { generateAnonymousId, generateAvatarSVG } from './ObfuscationUtils';
+import { DevLog } from './devUtils';
+
 export const TweetEnhancements = {
     enhanceTweet: async (tweetElement, badgeText, backgroundColor, hoverBackgroundColor) => {
         try {
@@ -111,5 +115,105 @@ export const TweetEnhancements = {
 
     enhanceFollowingTweet: async (tweetElement) => {
         return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWING', 'linear-gradient(45deg, #ffe0b2 0%, #ffcc80 100%)', 'linear-gradient(45deg, #ffe0b2 0%, #ffb74d 100%)');
+    },
+
+    obfuscateUser: async (tweetElement: HTMLElement) => {
+        try {
+            const avatarContainer = tweetElement.querySelector('[data-testid^="UserAvatar-Container"]');
+            const displayNameElement = tweetElement.querySelector('div[data-testid="User-Name"] a[role="link"]') as HTMLAnchorElement;
+            const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] span');
+            
+            if (!avatarContainer || !usernameElement || !displayNameElement) {
+                console.log('Could not find required elements', { 
+                    avatarFound: !!avatarContainer, 
+                    usernameFound: !!usernameElement, 
+                    displayNameFound: !!displayNameElement 
+                });
+                return;
+            }
+            const href = displayNameElement.href 
+            // Get original username for consistent anonymization
+            const originalUsername = href.split('/').pop() || '';
+            const anonymousId = originalUsername.toLowerCase().startsWith('user')? originalUsername: generateAnonymousId(originalUsername);
+             
+
+            console.log('Obfuscation process:', JSON.stringify({
+                originalUsername,
+                generatedAnonymousId: anonymousId,
+                tweetElementId: tweetElement.attributes.getNamedItem('aria-labelledby')?.value || 'no-id',
+                currentAvatarText: avatarContainer?.textContent,
+                currentUsernameText: usernameElement?.textContent,
+                timestamp: new Date().toISOString()
+            }));
+
+            DevLog(originalUsername, "anonymousId ", anonymousId);
+
+             // Get the original container size
+             const containerStyle = window.getComputedStyle(avatarContainer);
+             const size = parseInt(containerStyle.width) || 40; // Default to 40px if can't get width
+ 
+
+            // Find the image container using structural selectors
+            // This looks for either:
+            // 1. A div containing an img element
+            // 2. A div with a background-image style
+            const imageContainer = (
+                avatarContainer.querySelector('div > img')?.parentElement || 
+                avatarContainer.querySelector('div[style*="background-image"]')
+            );
+
+
+            if (imageContainer) {
+                // Store the parent element before we modify anything
+                const parentElement = imageContainer.parentElement;
+                // Clear out the image container and its parent
+                if (parentElement) {
+                    parentElement.innerHTML = '';
+                    // Add our SVG
+                    parentElement.innerHTML = generateAvatarSVG(anonymousId, size,originalUsername);
+                }
+
+                // Clean up any other image elements or background images in the container
+                avatarContainer.querySelectorAll('img').forEach(img => img.remove());
+                avatarContainer.querySelectorAll('div[style*="background-image"]').forEach(div => {
+                    if (div instanceof HTMLElement) {
+                        div.style.backgroundImage = 'none';
+                    }
+                });
+            }
+
+            // 2. Replace username and display name
+            if (usernameElement) {
+                usernameElement.textContent = `■■■■■■■■■`;
+            }
+            displayNameElement.textContent = anonymousId;
+
+            //// 3. Add hover effect to show it's obfuscated
+            //const tweetCard = tweetElement.closest('article');
+            //if (tweetCard) {
+            //    tweetCard.style.transition = 'all 0.3s ease';
+            //    
+            //    // Add a subtle indicator that this tweet is obfuscated
+            //    const obfuscationIndicator = document.createElement('div');
+            //    obfuscationIndicator.style.position = 'absolute';
+            //    obfuscationIndicator.style.top = '8px';
+            //    obfuscationIndicator.style.right = '8px';
+            //    obfuscationIndicator.style.fontSize = '12px';
+            //    obfuscationIndicator.style.color = '#666';
+            //    obfuscationIndicator.style.padding = '4px 8px';
+            //    obfuscationIndicator.style.borderRadius = '4px';
+            //    obfuscationIndicator.style.backgroundColor = '#f0f0f0';
+            //    obfuscationIndicator.textContent = '🔒 Obfuscated';
+            //    
+            //    if (!tweetCard.querySelector('.obfuscation-indicator')) {
+            //        obfuscationIndicator.className = 'obfuscation-indicator';
+            //        tweetCard.style.position = 'relative';
+            //        tweetCard.appendChild(obfuscationIndicator);
+            //    }
+            //}
+
+        } catch (error) {
+            console.error('Error obfuscating user:', error);
+        }
     }
 };
