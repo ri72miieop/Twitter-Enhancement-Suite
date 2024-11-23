@@ -10,6 +10,7 @@ import { getUser } from "~utils/dbUtils"
 import FeedbackTab from "~tabs/FeedbackTab"
 import { supabase } from "~core/supabase"
 import { DevLog } from "~utils/devUtils"
+import TweetEnhancementConfig from "~tabs/TweetEnhancementConfig"
 
 
 const navOptions = [
@@ -48,6 +49,12 @@ const navOptions = [
     label: "Feedback",
     description: "Send feedback to the developer.",
     component: FeedbackTab
+  },
+  {
+    key: "tweetEnhancement",
+    label: "Tweet Enhancement",
+    description: "Configure tweet enhancement features.",
+    component: TweetEnhancementConfig
   }
 ]
 

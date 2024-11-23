@@ -27,7 +27,65 @@ export interface User{
     username: string
 }
 
+
+export interface TweetEnhancementPreferences {
+  obfuscateAllUsers: boolean
+  showRelationshipBadges: boolean
+  showOriginalPosterBadge: boolean
+}
+
+const defaultPreferences: TweetEnhancementPreferences = {
+  obfuscateAllUsers: false,
+  showRelationshipBadges: true,
+  showOriginalPosterBadge: true
+}
+
 class CachedData {
+  private static readonly PREFERENCES_KEY = "tweetEnhancementPreferences";
+
+  async GetEnhancementPreferences(): Promise<TweetEnhancementPreferences> {
+    try {
+      // Check in-memory cache first
+      const cachedPrefs = CachedData.inMemoryCache[CachedData.PREFERENCES_KEY];
+      if (cachedPrefs && cachedPrefs.last_updated >= Date.now() - CachedData.CACHE_EXPIRATION) {
+        return cachedPrefs.data;
+      }
+
+      // If not in memory, get from storage
+      const savedPrefs = await CachedData.storage.get<TweetEnhancementPreferences>(CachedData.PREFERENCES_KEY);
+      const prefs = savedPrefs || defaultPreferences;
+
+      // Update in-memory cache
+      CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
+        data: prefs,
+        last_updated: Date.now()
+      };
+
+      return prefs;
+    } catch (error) {
+      console.error('Error getting enhancement preferences:', error);
+      return defaultPreferences;
+    }
+  }
+
+  async SaveEnhancementPreferences(newPreferences: TweetEnhancementPreferences): Promise<void> {
+    try {
+      // Update storage
+      await CachedData.storage.set(CachedData.PREFERENCES_KEY, newPreferences);
+      
+      // Update in-memory cache
+      CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
+        data: newPreferences,
+        last_updated: Date.now()
+      };
+
+      DevLog(`Saved enhancement preferences: ${JSON.stringify(newPreferences)}`);
+    } catch (error) {
+      console.error('Error saving enhancement preferences:', error);
+      throw error;
+    }
+  }
+
   private static readonly CACHE_EXPIRATION = 1000 * 60 * 60 * 24; // 24 hours
 
   private static storage: Storage = new Storage({

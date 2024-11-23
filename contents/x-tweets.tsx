@@ -15,7 +15,7 @@ import { getUser } from "~utils/dbUtils"
 import { TweetEnhancements } from "~utils/TweetEnhancements"
 
 import { scrapeTweet } from "./scrapeTweet"
-import { GlobalCachedData } from "./Storage/CachedData"
+import { GlobalCachedData, type TweetEnhancementPreferences } from "./Storage/CachedData"
 import TweetStorage from "./Storage/TweetsStorage"
 import { DevLog } from "~utils/devUtils"
 
@@ -26,7 +26,6 @@ export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
 
 export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
   //disable it for now
-  return [];
   const anchors = document.querySelectorAll("article")
   return Array.from(anchors).map((element) => {
     return {
@@ -84,12 +83,23 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     isFollowed: false,
     isFollower: false
   })
+  const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [userId, setUserId] = useState("")
-  const [value, setValue] = useState(0)
+
   //tweetStorage.addTweet(tweetData);
 
+
+  useEffect(() => {
+    // Load saved preferences on mount
+    GlobalCachedData.GetEnhancementPreferences().then(savedPrefs => {
+      if (savedPrefs) {
+        setPreferences(savedPrefs)
+      }
+    })
+  }, [])
+
   //MarkAsStored(tweetElement)
-  if (isDev) {
+  if (isDev ) {
     useEffect(() => {
       if (!isDev) return
 
@@ -143,7 +153,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       })
     }
 
-    if (userId) {
+    if (userId && preferences && preferences.showRelationshipBadges) {
       checkRelationships()
     }
   }, [tweetData.id, tweetElement, userId])
@@ -152,7 +162,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     parentElement.innerHTML = `<div> too many likes </div>`
   }
 
-  if (userRelationshipStatus) {
+  if (preferences && preferences.showRelationshipBadges &&  userRelationshipStatus ) {
     if (userRelationshipStatus.isMutual) {
       TweetEnhancements.enhanceMutualTweet(tweetElement)
     } else if (userRelationshipStatus.isFollowed) {
@@ -161,14 +171,16 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       TweetEnhancements.enhanceFollowerTweet(tweetElement)
     }
   }
+  DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
+  if(userId && preferences && preferences.obfuscateAllUsers) {
+    TweetEnhancements.obfuscateUser(tweetElement)
+  }
 
-  if(openXUsername === tweetData.author.handle) {
+  if(preferences && preferences.showOriginalPosterBadge && openXUsername === tweetData.author.handle) {
     TweetEnhancements.enhanceOriginalPoster(tweetElement)
   }
 
   //NotEndorsedAnymore(tweetElement)
-
-  tweetStorage.inserted().then((v) => setValue(v))
 
   return (
     <>
