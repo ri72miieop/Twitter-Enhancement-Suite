@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { GlobalCachedData, type TweetEnhancementPreferences } from '~contents/Storage/CachedData'
+import { getUser } from '~utils/dbUtils'
 
 
 
 function TweetEnhancementConfig() {
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
+  const [user, setUser] = useState<{id: any, username: any} | null>(null)
 
   useEffect(() => {
     // Load saved preferences on mount
@@ -12,6 +14,10 @@ function TweetEnhancementConfig() {
       if (savedPrefs) {
         setPreferences(savedPrefs)
       }
+    })
+    getUser().then(user => {
+      if(!user) return
+      setUser(user)
     })
   }, [])
 
@@ -39,6 +45,8 @@ function TweetEnhancementConfig() {
       />
     </button>
   )
+
+  if(!user) return <div>Please sign in to send feedback</div>
 
   return (
     <div className="p-4 space-y-6">
