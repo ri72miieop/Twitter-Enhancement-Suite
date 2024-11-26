@@ -36,8 +36,8 @@ export interface TweetEnhancementPreferences {
 
 const defaultPreferences: TweetEnhancementPreferences = {
   obfuscateAllUsers: false,
-  showRelationshipBadges: true,
-  showOriginalPosterBadge: true
+  showRelationshipBadges: false,
+  showOriginalPosterBadge: false
 }
 
 class CachedData {
