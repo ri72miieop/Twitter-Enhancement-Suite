@@ -215,5 +215,85 @@ export const TweetEnhancements = {
         } catch (error) {
             console.error('Error obfuscating user:', error);
         }
+    },
+    enhanceSignalBoostingUrls: async (tweetElement: HTMLElement, onSignalBoostClick: () => void) => {
+        try {
+            // Find all links in the tweet
+            const links = tweetElement.querySelectorAll('[data-testid="tweetText"] a[role="link"]') as NodeListOf<HTMLAnchorElement>;
+            
+            links.forEach(link => {
+                if (!(link instanceof HTMLElement)) return;
+                
+                console.log("link", link.href)
+                // Skip user mentions and hashtags
+                if (link.href.includes('/hashtag/') || link.href.includes('/status/') || link.href.includes('x.com')   || !link.href.includes('http')) return;
+
+                // Check if wrapper doesn't already exist
+                if (link.parentElement?.classList.contains('signal-boost-link-wrapper')) return;
+
+                // Create wrapper for the enhanced link
+                const wrapper = document.createElement('span');
+                wrapper.className = 'signal-boost-link-wrapper';
+                wrapper.style.display = 'inline-flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.gap = '4px';
+                wrapper.style.padding = '2px 8px';
+                wrapper.style.margin = '0 2px';
+                wrapper.style.borderRadius = '12px';
+                wrapper.style.background = 'linear-gradient(45deg, rgba(29, 161, 242, 0.1), rgba(120, 86, 255, 0.1))';
+                wrapper.style.transition = 'all 0.2s ease';
+
+                // Create boost icon
+                const boostIcon = document.createElement('span');
+                boostIcon.innerHTML = '📢';
+                boostIcon.style.fontSize = '14px';
+                boostIcon.style.opacity = '0';
+                boostIcon.style.transform = 'scale(0.8)';
+                boostIcon.style.transition = 'all 0.2s ease';
+                boostIcon.style.cursor = 'pointer';
+
+                // Wrap the original link
+                link.parentNode?.insertBefore(wrapper, link);
+                wrapper.appendChild(boostIcon);
+                wrapper.appendChild(link);
+
+                // Add hover effects
+                wrapper.addEventListener('mouseenter', () => {
+                    wrapper.style.background = 'linear-gradient(45deg, rgba(29, 161, 242, 0.2), rgba(120, 86, 255, 0.2))';
+                    wrapper.style.transform = 'translateY(-1px)';
+                    boostIcon.style.opacity = '1';
+                    boostIcon.style.transform = 'scale(1)';
+                });
+
+                wrapper.addEventListener('mouseleave', () => {
+                    wrapper.style.background = 'linear-gradient(45deg, rgba(29, 161, 242, 0.1), rgba(120, 86, 255, 0.1))';
+                    wrapper.style.transform = 'translateY(0)';
+                    boostIcon.style.opacity = '0';
+                    boostIcon.style.transform = 'scale(0.8)';
+                });
+
+                // Add click animation
+                wrapper.addEventListener('mousedown', () => {
+                    wrapper.style.transform = 'translateY(0)';
+                });
+
+                wrapper.addEventListener('mouseup', () => {
+                    wrapper.style.transform = 'translateY(-1px)';
+                });
+
+                // Add signal boost click handler
+                boostIcon.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    DevLog("signal boost clicked")
+                    if (onSignalBoostClick) {
+                        onSignalBoostClick();
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('Error enhancing signal boosting URLs:', error);
+        }
     }
 };
