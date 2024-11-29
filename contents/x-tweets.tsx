@@ -37,7 +37,7 @@ export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
 
 export const config: PlasmoCSConfig = {
   matches: ["https://*.x.com/*"],
-  css: ["font.css"]
+  
 }
 
 export const getStyle = () => {

@@ -8,7 +8,7 @@ import { DevLog } from "~utils/devUtils"
 
 export const config: PlasmoCSConfig = {
     matches: ["https://*.x.com/MakeTwitterGreatAgain/moots"],
-    css: ["font.css"]
+    
   }
 
   export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {

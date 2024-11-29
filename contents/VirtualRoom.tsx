@@ -6,7 +6,7 @@ import { VirtualRoom } from "~components/VirtualRoom/VirtualRoom"
 
 export const config: PlasmoCSConfig = {
     matches: ["https://*.x.com/MakeTwitterGreatAgain/VirtualRoom"],
-    css: ["font.css"]
+    
   }
 
   export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
