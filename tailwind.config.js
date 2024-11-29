@@ -4,7 +4,14 @@ const { fontFamily } = require("tailwindcss/defaultTheme")
 module.exports = {
   mode: "jit",
   darkMode: ["class"],
-  content: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+  content: ["app/**/*.{html,ts,tsx}", "components/**/*.{ts,tsx}", "*.{html,ts,tsx}", "tabs/**/*.{ts,tsx}", "contents/**/*.{ts,tsx}"],
+  safelist: [
+    'bg-amber-50',
+    'bg-red-50',
+    'bg-slate-100',
+    'bg-white',
+    'bg-gray-200',
+  ],
   theme: {
     container: {
       center: true,

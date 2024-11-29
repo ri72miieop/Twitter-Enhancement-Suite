@@ -4,6 +4,7 @@ import { TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ScrollArea } from "./ui/ScrollArea"
 import Tweet from "./Tweet"
 import { ExternalLink,Repeat,Heart } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/shadcn/Avatar"
 
 
 type TabData = {
@@ -120,7 +121,10 @@ type TabData = {
                      //replyToUsername={tweet.reply_to_username || undefined}
                      <div key={tweet.tweet_id} style={{ marginBottom: 16, borderBottom: '1px solid #e1e8ed', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          <img src={tweet.avatar_media_url} alt={tweet.username} style={{ width: 48, height: 48, borderRadius: '50%', marginRight: 12 }} />
+        <Avatar>
+              <AvatarImage src={tweet.avatar_media_url} alt={tweet.username} />
+              <AvatarFallback>{tweet.username.charAt(0)}</AvatarFallback>
+            </Avatar>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
               <span style={{ fontWeight: 'bold', marginRight: 4 }}>{tweet.account_display_name}</span>

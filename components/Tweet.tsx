@@ -1,5 +1,6 @@
 import { ExternalLink, Heart, Repeat } from "lucide-react"
 import { Fragment } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/shadcn/Avatar"
 
 function Tweet({ tweet }) {
   return (
@@ -11,16 +12,10 @@ function Tweet({ tweet }) {
         padding: "12px 16px"
       }}>
       <div style={{ display: "flex", alignItems: "flex-start" }}>
-        <img
-          src={tweet.avatar_media_url}
-          alt={tweet.username}
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            marginRight: 12
-          }}
-        />
+      <Avatar>
+              <AvatarImage src={tweet.avatar_media_url} alt={tweet.username} />
+              <AvatarFallback>{tweet.username.charAt(0)}</AvatarFallback>
+            </Avatar>
         <div style={{ flex: 1 }}>
           <div
             style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
