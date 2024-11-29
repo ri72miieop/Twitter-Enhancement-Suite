@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Switch } from '~components/ui/switch'
-import { GlobalCachedData, PreferenceMetadata, TweetEnhancementPreferencesManager, type TweetEnhancementPreferences } from '~contents/Storage/CachedData'
+import { GlobalCachedData, TweetEnhancementPreferencesManager, type TweetEnhancementPreferences } from '~contents/Storage/CachedData'
 import { getUser } from '~utils/dbUtils'
 
 
@@ -8,7 +8,7 @@ import { getUser } from '~utils/dbUtils'
 function TweetEnhancementConfig() {
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [user, setUser] = useState<{id: any, username: any} | null>(null)
-
+  const [preferencesMetadata] = useState(TweetEnhancementPreferencesManager.getPreferenceMetadata());
   useEffect(() => {
     // Load saved preferences on mount
     GlobalCachedData.GetEnhancementPreferences().then(savedPrefs => {
@@ -33,7 +33,7 @@ function TweetEnhancementConfig() {
 
   if(!user) return <div>Please sign in to send feedback</div>
 
-  const preferencesMetadata = TweetEnhancementPreferencesManager.getPreferenceMetadata();
+  
 
   return (
     <div className="p-4 space-y-6">
