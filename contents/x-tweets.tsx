@@ -17,7 +17,7 @@ import { TweetEnhancements } from "~utils/TweetEnhancements"
 import { scrapeTweet } from "./scrapeTweet"
 import { GlobalCachedData, type TweetEnhancementPreferences } from "./Storage/CachedData"
 import TweetStorage from "./Storage/TweetsStorage"
-import { DevLog } from "~utils/devUtils"
+import { DevLog, isDev } from "~utils/devUtils"
 
 export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
   element.getAttribute("aria-labelledby") + `-xtweets`
@@ -58,8 +58,6 @@ const ChangeBackgroundColor = (element: HTMLElement, color: string) => {
   element.style["background-color"] = color
 }
 
-const isDev = process.env.NODE_ENV === "development"
-
 
 const extractXUsername = (url: string): string | false => {
   // Check if URL matches pattern x.com/username/status/
@@ -99,7 +97,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   }, [])
 
   //MarkAsStored(tweetElement)
-  if (isDev ) {
+  if (isDev  && false) {
     useEffect(() => {
       if (!isDev) return
 
@@ -171,6 +169,21 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       TweetEnhancements.enhanceFollowerTweet(tweetElement)
     }
   }
+
+  if(preferences && preferences.enableSignalBoostingUrls) {
+    TweetEnhancements.enhanceSignalBoostingUrls(tweetElement, async ()=> {
+      const user = await getUser();
+      console.log("signal boosting", tweetData.id, user.id)
+      await supabase.from("signal_boosts").upsert({
+        tweet_id: tweetData.id,
+        boosted_by: user.id
+      });
+
+    })
+  }
+
+
+
   DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
   if(userId && preferences && preferences.obfuscateAllUsers) {
     TweetEnhancements.obfuscateUser(tweetElement)
