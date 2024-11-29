@@ -9,52 +9,77 @@ import ChatRoom from "~tabs/Chatroom"
 import { getUser } from "~utils/dbUtils"
 import FeedbackTab from "~tabs/FeedbackTab"
 import { supabase } from "~core/supabase"
-import { DevLog } from "~utils/devUtils"
+import { DevLog, isDev } from "~utils/devUtils"
 import TweetEnhancementConfig from "~tabs/TweetEnhancementConfig"
+import ShadCN from "~tabs/ShadCN"
+import SignalBoostedTweets, { SignalBoostedTweetsTab } from "~tabs/SignalBoostedTweetsTab"
+
+
 
 
 const navOptions = [
   { 
     key: "toptweets", 
+    isEnabled: true,
     label: "Top Tweets", 
     description: "The most liked tweets of all time from this user.",
     component: TopTweetsTab
   },
-  //{ 
-  //  key: "ourConversations", 
-  //  label: "Our Conversations", 
-  //  description: "See previous conversations between you and this user.",
-  //  component: OurConversationsTab
-  //},
+  { 
+    key: "ourConversations", 
+    isEnabled: false,
+    label: "Our Conversations", 
+    description: "See previous conversations between you and this user.",
+    component: OurConversationsTab
+  },
   { 
     key: "search", 
+    isEnabled: true,
     label: "Search", 
     description: "Search for specific tweets or content.",
     component: SearchTab
   },
   { 
     key: "thisDay", 
+    isEnabled: true,
     label: "On This Day", 
     description: "Same day and month; different year. Both your own tweets and your faves.",
     component: OnThisDay
   },
-  //{ 
-  //  key: "chatroom", 
-  //  label: "Chatroom", 
-  //  description: "Chat with this user.",
-  //  component: ChatRoom
-  //},
+  { 
+    key: "chatroom", 
+    isEnabled: isDev,
+    label: "Chatroom", 
+    description: "Chat with this user.",
+    component: ChatRoom
+  },
   {
     key: "feedback",
+    isEnabled: true,
     label: "Feedback",
     description: "Send feedback to the developer.",
     component: FeedbackTab
   },
   {
     key: "tweetEnhancement",
+    isEnabled: true,
     label: "Tweet Enhancement",
     description: "Configure tweet enhancement features.",
     component: TweetEnhancementConfig
+  },
+  {
+    key: "ShadCN",
+    isEnabled: isDev,
+    label: "ShadCN",
+    description: "ShadCN components.",
+    component: ShadCN
+  },
+  {
+    key: "signalBoostedTweets",
+    isEnabled: true,
+    label: "Signal Boosted Tweets",
+    description: "See tweets that have been boosted by this user.",
+    component: SignalBoostedTweetsTab
   }
 ]
 
@@ -90,7 +115,7 @@ const IndexSidePanel = () => {
   }, [])
 
   const ActiveComponent = navOptions.find(option => option.key === activeOption)?.component || null
-
+  
   return (<>
   {user && (
 
