@@ -32,13 +32,51 @@ export interface TweetEnhancementPreferences {
   obfuscateAllUsers: boolean
   showRelationshipBadges: boolean
   showOriginalPosterBadge: boolean
+  enableSignalBoostingUrls: boolean
 }
+export interface PreferenceMetadata {
+  preference: keyof TweetEnhancementPreferences;
+  title: string;
+  subtitle: string;
+}
+export class TweetEnhancementPreferencesManager {
+  private static readonly defaultPreferences: TweetEnhancementPreferences = {
+    obfuscateAllUsers: false,
+    showRelationshipBadges: false,
+    showOriginalPosterBadge: false,
+    enableSignalBoostingUrls: true
+  };
 
-const defaultPreferences: TweetEnhancementPreferences = {
-  obfuscateAllUsers: false,
-  showRelationshipBadges: false,
-  showOriginalPosterBadge: false
+  static getDefaultPreferences(): TweetEnhancementPreferences {
+    return { ...this.defaultPreferences };
+  }
+
+  static getPreferenceMetadata(): PreferenceMetadata[] {
+    return [
+      {
+        preference: "obfuscateAllUsers",
+        title: "Obfuscate All Users",
+        subtitle: "Hide usernames and display names for all users"
+      },
+      {
+        preference: "showRelationshipBadges",
+        title: "Show Relationship Badges",
+        subtitle: "Display badges indicating your relationship with other users"
+      },
+      {
+        preference: "showOriginalPosterBadge",
+        title: "Show Original Poster Badge",
+        subtitle: "Highlight the original poster in thread discussions"
+      },
+      {
+        preference: "enableSignalBoostingUrls",
+        title: "Enable Signal Boosting URLs",
+        subtitle: "Allow sharing links through signal boosting features"
+      }
+    ];
+  }
 }
+const defaultPreferences = TweetEnhancementPreferencesManager.getDefaultPreferences()
 
 class CachedData {
   private static readonly PREFERENCES_KEY = "tweetEnhancementPreferences";
