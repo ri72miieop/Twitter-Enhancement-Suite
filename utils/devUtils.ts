@@ -38,3 +38,5 @@ export const DevLog = (...args: any[]) => {
     }
   }
 };
+
+export const isDev = process.env.NODE_ENV === "development"
