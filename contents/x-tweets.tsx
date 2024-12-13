@@ -37,6 +37,7 @@ export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
 
 export const config: PlasmoCSConfig = {
   matches: ["https://*.x.com/*"],
+  all_frames: true
   
 }
 
@@ -74,7 +75,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const tweetData = scrapeTweet(tweetElement)
   const openXUsername = extractXUsername(window.location.href)
 
-  DevLog("XTweet " + tweetData.id + " " + tweetData.author.handle)
+  //DevLog("XTweet " + tweetData.id + " " + tweetData.author.handle)
 
   const [userRelationshipStatus, setUserRelationshipStatus] = useState({
     isMutual: false,
@@ -146,8 +147,10 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     }
     if (!userId) {
       getUser().then((i) => {
-        setUserId(i.id)
-        DevLog("userId " + i.id, "debug")
+        if(i) {
+          setUserId(i.id)
+          //DevLog("userId " + i.id, "debug")
+        }
       })
     }
 
@@ -157,7 +160,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   }, [tweetData.id, tweetElement, userId])
   //DevLog(tweetData);
   if (tweetData.engagement.likes > 100000) {
-    parentElement.innerHTML = `<div> too many likes </div>`
+    TweetEnhancements.enhanceHighEngagementTweet(tweetElement, tweetData.engagement.likes)
   }
 
   if (preferences && preferences.showRelationshipBadges &&  userRelationshipStatus ) {
@@ -184,7 +187,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
 
 
 
-  DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
+  //DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
   if(userId && preferences && preferences.obfuscateAllUsers) {
     TweetEnhancements.obfuscateUser(tweetElement)
   }
@@ -192,6 +195,8 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   if(preferences && preferences.showOriginalPosterBadge && openXUsername === tweetData.author.handle) {
     TweetEnhancements.enhanceOriginalPoster(tweetElement)
   }
+
+  //TweetEnhancements.applyTextModifiers(tweetElement)
 
   //NotEndorsedAnymore(tweetElement)
 
