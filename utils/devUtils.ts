@@ -40,3 +40,7 @@ export const DevLog = (...args: any[]) => {
 };
 
 export const isDev = process.env.NODE_ENV === "development"
+
+export const PLASMO_PUBLIC_CRX_ID = process.env.PLASMO_PUBLIC_CRX_ID
+
+export const PLASMO_PUBLIC_RECORD_EXPIRY_SECONDS = Number.parseInt(process.env.PLASMO_PUBLIC_RECORD_EXPIRY_SECONDS || "600")
