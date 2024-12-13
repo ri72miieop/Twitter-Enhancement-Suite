@@ -1,6 +1,7 @@
 import React, { type SVGAttributes } from 'react';
 import { generateAnonymousId, generateAvatarSVG } from './ObfuscationUtils';
 import { DevLog } from './devUtils';
+import { GlobalCachedData } from '~contents/Storage/CachedData';
 
 export const TweetEnhancements = {
     enhanceTweet: async (tweetElement, badgeText, backgroundColor, hoverBackgroundColor) => {
@@ -122,6 +123,13 @@ export const TweetEnhancements = {
             const avatarContainer = tweetElement.querySelector('[data-testid^="UserAvatar-Container"]');
             const displayNameElement = tweetElement.querySelector('div[data-testid="User-Name"] a[role="link"]') as HTMLAnchorElement;
             const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] span');
+
+
+            const quotedTweet = tweetElement.querySelector('div[class*="r-eqz5dr"][class*="r-jusfrs"]');
+            //DevLog("quotedTweet",quotedTweet)
+            //if(quotedTweet) {
+            //    TweetEnhancements.obfuscateUser(quotedTweet as HTMLElement);
+            //}
             
             if (!avatarContainer || !usernameElement || !displayNameElement) {
                 console.log('Could not find required elements', { 
@@ -137,7 +145,7 @@ export const TweetEnhancements = {
             const anonymousId = originalUsername.toLowerCase().startsWith('user')? originalUsername: generateAnonymousId(originalUsername);
              
 
-            console.log('Obfuscation process:', JSON.stringify({
+            DevLog('Obfuscation process:', JSON.stringify({
                 originalUsername,
                 generatedAnonymousId: anonymousId,
                 tweetElementId: tweetElement.attributes.getNamedItem('aria-labelledby')?.value || 'no-id',
@@ -224,7 +232,7 @@ export const TweetEnhancements = {
             links.forEach(link => {
                 if (!(link instanceof HTMLElement)) return;
                 
-                console.log("link", link.href)
+                //DevLog("link", link.href)
                 // Skip user mentions and hashtags
                 if (link.href.includes('/hashtag/') || link.href.includes('/status/') || link.href.includes('x.com')   || !link.href.includes('http')) return;
 
@@ -295,5 +303,142 @@ export const TweetEnhancements = {
         } catch (error) {
             console.error('Error enhancing signal boosting URLs:', error);
         }
+    },
+    enhanceHighEngagementTweet: async (tweetElement: HTMLElement, engagementCount: number) => {
+        try {
+            const tweetContent = tweetElement.querySelector('[data-testid="tweetText"]');
+            const mediaContainer = tweetElement.querySelector('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]');
+            if (!tweetContent) return;
+
+            // Create wrapper
+            const wrapper = document.createElement('div');
+            Object.assign(wrapper.style, {
+                position: 'relative',
+                transition: 'all 0.3s ease',
+                borderRadius: '16px',
+                overflow: 'hidden'
+            });
+
+            // Move content into wrapper
+            tweetContent.parentNode.insertBefore(wrapper, tweetContent);
+            wrapper.appendChild(tweetContent);
+            if (mediaContainer) {
+                wrapper.appendChild(mediaContainer);
+                mediaContainer.style.filter = 'blur(8px)';
+            }
+            tweetContent.style.filter = 'blur(8px)';
+
+            // Create overlay
+            const overlay = document.createElement('div');
+            Object.assign(overlay.style, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px',
+                transition: 'all 0.3s ease'
+            });
+
+            // Create content container
+            const contentContainer = document.createElement('div');
+            Object.assign(contentContainer.style, {
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+            });
+
+            // Add title
+            const title = document.createElement('div');
+            title.textContent = 'High Engagement Tweet';
+            Object.assign(title.style, {
+                fontSize: '16px',
+                fontWeight: '700',
+                color: 'rgb(15, 20, 25)'
+            });
+
+            // Add engagement count
+            const engagement = document.createElement('div');
+            engagement.textContent = `${engagementCount.toLocaleString()} likes`;
+            Object.assign(engagement.style, {
+                fontSize: '14px',
+                color: 'rgb(83, 100, 113)'
+            });
+
+            // Assemble overlay
+            contentContainer.appendChild(title);
+            contentContainer.appendChild(engagement);
+            overlay.appendChild(contentContainer);
+            wrapper.appendChild(overlay);
+
+            // Handle mouse enter to reveal content
+            wrapper.addEventListener('mouseenter', () => {
+                tweetContent.style.filter = 'none';
+                if (mediaContainer) {
+                    mediaContainer.style.filter = 'none';
+                }
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+
+                // Add subtle indicator
+                const indicator = document.createElement('div');
+                Object.assign(indicator.style, {
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    fontSize: '12px',
+                    color: 'rgb(83, 100, 113)',
+                    padding: '4px 12px',
+                    borderRadius: '9999px',
+                    backgroundColor: 'rgba(29, 155, 240, 0.1)'
+                });
+                indicator.textContent = 'High Engagement';
+                wrapper.appendChild(indicator);
+            });
+
+        } catch (error) {
+            console.error('Error enhancing high engagement tweet:', error);
+        }
+    },
+
+    //TODO: Add the UI components for this
+    applyTextModifiers : async (tweetElement: HTMLElement) => {
+        const textElement = tweetElement.querySelector('[data-testid="tweetText"] span')
+        if(!textElement) return;
+        if(textElement.classList.contains("tweet-text-modifiers")) return;
+        textElement.classList.add("tweet-text-modifiers")
+        
+        const originalText = textElement.textContent;
+        let newText = originalText;
+
+        // Get text replacements from GlobalCachedData
+        const replacements = await GlobalCachedData.GetTextModifiers() || [];
+        if(!replacements || replacements.length == 0) return;
+        // Apply each replacement
+        console.log("replacements " + replacements.length, (replacements))
+        replacements.forEach(replacement => {
+            newText = newText.replace(
+                new RegExp(replacement.from, 'g'), 
+                replacement.to
+            );
+        });
+        
+        textElement.textContent = newText;
+        
+        // Add hover functionality to show original text
+        textElement.addEventListener('mouseenter', () => {
+            textElement.textContent = originalText;
+        });
+        
+        textElement.addEventListener('mouseleave', () => {
+            textElement.textContent = newText;
+        });
     }
+        
 };
