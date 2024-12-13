@@ -1,6 +1,8 @@
 import { Storage } from "@plasmohq/storage"
+import SwitchPreference from "~components/Preferences/PreferenceSwitch";
 import type { ScrapedTweet } from "~contents/scrapeTweet";
 import { supabase } from "~core/supabase";
+import type { Tweet } from "~InterceptorModules/types";
 import { DevLog } from "~utils/devUtils";
 
 
@@ -76,6 +78,10 @@ export class TweetEnhancementPreferencesManager {
     ];
   }
 }
+
+
+
+
 const defaultPreferences = TweetEnhancementPreferencesManager.getDefaultPreferences()
 
 class CachedData {
@@ -131,10 +137,11 @@ class CachedData {
   })
 
   private static readonly USERDATA_KEY = "userData_"
-  private static readonly moots = "userMoots_"
-  private static readonly followers = "userFollowers_"
-  private static readonly follows = "userFollows_"
-  
+  private static readonly MOOTS_KEY = "userMoots_"
+  private static readonly FOLLOWERS_KEY = "userFollowers_"
+  private static readonly FOLLOWS_KEY = "userFollows_"
+  private static readonly TEXT_REPLACEMENET_KEY = "textReplacements"
+  private static readonly CAN_SCRAPE_KEY = "canScrape"
 
 
   private static inMemoryCache: { [key: string]: TimedData<any> } = {}; // Use 'any' for generic types
@@ -143,13 +150,23 @@ class CachedData {
   private static pendingRequests: { [key: string]: Promise<any> } = {};
 
   // Generic fetch and cache method
-  private async fetchAndCache<T>(key: string, fetchFunction: () => Promise<T>): Promise<T> {
+  private async fetchAndCache<T>(key: string, fetchFunction: ( ) => Promise<T>, cache_expiration_in_ms:number = CachedData.CACHE_EXPIRATION): Promise<T> {
     // First check in-memory cache
+    
     const cachedData = CachedData.inMemoryCache[key];
-    if (cachedData && cachedData.last_updated >= Date.now() - CachedData.CACHE_EXPIRATION) {
+    if (cachedData && cachedData.last_updated >= Date.now() - cache_expiration_in_ms) {
       DevLog(`Cache hit for key: ${key}`);
       return cachedData.data;
     }
+
+    
+  const storedData = await CachedData.storage.get<TimedData<T>>(key);
+  if (storedData && storedData.last_updated >= Date.now() - cache_expiration_in_ms) {
+    DevLog(`Storage cache hit for key: ${key}`);
+    // Update in-memory cache with storage data
+    CachedData.inMemoryCache[key] = storedData;
+    return storedData.data;
+  }
 
     // If there's already a pending request for this key, return its promise
     if (CachedData.pendingRequests[key]) {
@@ -207,9 +224,17 @@ class CachedData {
     return userData.data;
   }
 
+  async GetCanScrape(userid: string): Promise<boolean> {
+    const key = CachedData.CAN_SCRAPE_KEY + userid;
+    return this.fetchAndCache<boolean>(key, async () => {
+      const {data, error} = await supabase.from("blocked_scraping_users").select("*").eq("account_id", userid)
+      if(error) throw error
+      return data.length==0
+    }, 45 * 1000)
+  }
 
   async GetMoots(userid: string): Promise<User[]> {
-    const key = CachedData.moots + userid;
+    const key = CachedData.MOOTS_KEY + userid;
     return this.fetchAndCache<User[]>(key, async () => {
         const { data, error } = await supabase.rpc("tes_get_moots", { user_id: userid });
         if (error) throw error;
@@ -218,7 +243,7 @@ class CachedData {
 }
 
   async GetFollowers(userid : string) :Promise<User[]>{
-    const key = CachedData.followers + userid
+    const key = CachedData.FOLLOWERS_KEY + userid
    return this.fetchAndCache<User[]>(key, async () => {
       const {data, error} = await supabase.rpc("tes_get_followers", {user_id: userid})
       if(error) throw error
@@ -226,26 +251,48 @@ class CachedData {
     })
   }
   async GetFollows(userid : string) :Promise<User[]>{
-    const key = CachedData.follows + userid
+    const key = CachedData.FOLLOWS_KEY + userid
     return this.fetchAndCache<User[]>(key, async () => {
       const {data, error} = await supabase.rpc("tes_get_followings", {user_id: userid})
       if(error) throw error
       return data.map(following => ({user_id: following.user_id, username: following.username}))
     })
   }
+
+  async GetTextModifiers() : Promise<TextModifier[]>{
+    const key = CachedData.TEXT_REPLACEMENET_KEY
+    return this.fetchAndCache<TextModifier[]>(key, async () => {
+      const textModifiers = await CachedData.storage.get<TimedData<TextModifier[]>>(CachedData.TEXT_REPLACEMENET_KEY)
+      if(!textModifiers) return []
+      return textModifiers.data;
+    })
+  }
+
+  async SetTextModifiers(modifiers: TextModifier[]){
+    await CachedData.storage.set(CachedData.TEXT_REPLACEMENET_KEY, modifiers)
+    CachedData.inMemoryCache[CachedData.TEXT_REPLACEMENET_KEY] = {
+      data: modifiers,
+      last_updated: Date.now()
+    }
+  }
+
   private async ResetCacheWithKey(key:string) {
     const allKeys = await CachedData.storage.getAll()
     const cacheSelectedKeys = Object.keys(allKeys).filter(allKey => allKey.startsWith(key))
     await Promise.all(cacheSelectedKeys.map(key => CachedData.storage.remove(key)))
   }
   async ResetAllCache(){
-    await this.ResetCacheWithKey(CachedData.moots)
+    await this.ResetCacheWithKey(CachedData.MOOTS_KEY)
     await this.ResetCacheWithKey(CachedData.USERDATA_KEY)
-    await this.ResetCacheWithKey(CachedData.followers)
-    await this.ResetCacheWithKey(CachedData.follows)
+    await this.ResetCacheWithKey(CachedData.FOLLOWERS_KEY)
+    await this.ResetCacheWithKey(CachedData.FOLLOWS_KEY)
   }
 }
 
+export interface TextModifier{
+  from: string,
+  to: string
+}
 
 export default CachedData
 
