@@ -5,7 +5,7 @@ import { getUser } from '~utils/dbUtils'
 
 
 
-function TweetEnhancementConfig() {
+function TweetEnhancementConfigTab() {
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [user, setUser] = useState<{id: any, username: any} | null>(null)
   const [preferencesMetadata] = useState(TweetEnhancementPreferencesManager.getPreferenceMetadata());
@@ -40,7 +40,7 @@ function TweetEnhancementConfig() {
       <h2 className="text-2xl font-bold mb-4">Tweet Enhancement Settings</h2>
 
       <div className="space-y-4">
-    {preferencesMetadata && preferencesMetadata.map((prefMetadata) => (
+    {preferencesMetadata && preferencesMetadata.filter(prefMetadata => prefMetadata.isEnabled).map((prefMetadata) => (
        <div id={prefMetadata.preference} className="flex items-center justify-between">
        <div>
          <h3 className="text-lg font-medium">{prefMetadata.title}</h3>
@@ -56,4 +56,4 @@ function TweetEnhancementConfig() {
   )
 }
 
-export default TweetEnhancementConfig
+export default TweetEnhancementConfigTab
