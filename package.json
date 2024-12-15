@@ -1,12 +1,12 @@
 {
   "name": "twitter-enhancement-suite",
   "displayName": "TES: Twitter Enhancement Suite",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "An extension to enhance your Twitter experience.",
   "author": "IaimforGOAT",
   "scripts": {
-    "dev": "plasmo dev --entry=options --env=.env.development",
-    "build": "plasmo build --env=.env.development",
+    "dev": "plasmo dev --entry=options --env=.env.development --verbose",
+    "build": "plasmo build --env=.env.development --verbose",
     "package": "plasmo package --env=.env.development",
     "tailwind": "npx tailwindcss -i ./input.css -o ./prod.css",
     "tailwind:watch": "npx tailwindcss -i ./input.css -o ./prod.css --watch",
