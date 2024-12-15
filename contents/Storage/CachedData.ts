@@ -3,7 +3,7 @@ import SwitchPreference from "~components/Preferences/PreferenceSwitch";
 import type { ScrapedTweet } from "~contents/scrapeTweet";
 import { supabase } from "~core/supabase";
 import type { Tweet } from "~InterceptorModules/types";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, isDev } from "~utils/devUtils";
 
 
 export interface UserData {
@@ -35,18 +35,21 @@ export interface TweetEnhancementPreferences {
   showRelationshipBadges: boolean
   showOriginalPosterBadge: boolean
   enableSignalBoostingUrls: boolean
+  blurViralTweets: boolean
 }
 export interface PreferenceMetadata {
   preference: keyof TweetEnhancementPreferences;
   title: string;
   subtitle: string;
+  isEnabled: boolean;
 }
 export class TweetEnhancementPreferencesManager {
   private static readonly defaultPreferences: TweetEnhancementPreferences = {
     obfuscateAllUsers: false,
     showRelationshipBadges: false,
     showOriginalPosterBadge: false,
-    enableSignalBoostingUrls: true
+    enableSignalBoostingUrls: false,
+    blurViralTweets: false
   };
 
   static getDefaultPreferences(): TweetEnhancementPreferences {
@@ -58,22 +61,32 @@ export class TweetEnhancementPreferencesManager {
       {
         preference: "obfuscateAllUsers",
         title: "Obfuscate All Users",
-        subtitle: "Hide usernames and display names for all users"
+        subtitle: "Hide usernames and display names for all users",
+        isEnabled: true
       },
       {
         preference: "showRelationshipBadges",
         title: "Show Relationship Badges",
-        subtitle: "Display badges indicating your relationship with other users"
+        subtitle: "Display badges indicating your relationship with other users",
+        isEnabled: true
       },
       {
         preference: "showOriginalPosterBadge",
         title: "Show Original Poster Badge",
-        subtitle: "Highlight the original poster in thread discussions"
+        subtitle: "Highlight the original poster in thread discussions",
+        isEnabled: true
+      },
+      {
+        preference: "blurViralTweets",
+        title: "Blur Viral Tweets",
+        subtitle: "Blur tweets that have more than 100k likes",
+        isEnabled: true
       },
       {
         preference: "enableSignalBoostingUrls",
         title: "Enable Signal Boosting URLs",
-        subtitle: "Allow sharing links through signal boosting features"
+        subtitle: "Allow sharing links through signal boosting features",
+        isEnabled: isDev
       }
     ];
   }
