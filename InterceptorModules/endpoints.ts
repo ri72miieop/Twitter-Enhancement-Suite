@@ -4,6 +4,7 @@ import type { TimelineInstructions } from "./types";
 import { extractTimelineTweet } from "~utils/twe_utils";
 import { extractDataFromResponse } from "~utils/twe_utils";
 import { db } from "~database";
+import { DevLog } from "~utils/devUtils";
 
 
   
@@ -33,20 +34,20 @@ import { db } from "~database";
     const data = {endpoint: endpoint, request: req.body, response: res.response }
     //  // Dispatch a custom event
     //for(const tweet of newData) {
-    //  console.log("Sending intercepted data to IndexDB:", tweet.rest_id)
+    //  DevLog("Sending intercepted data to IndexDB:", tweet.rest_id)
       const randomId = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
       window.dispatchEvent(new CustomEvent('dataInterceptedEvent', { detail: {data:data, type: "endpoint", originator_id: randomId, item_id: randomId }}));
     //}
-    //  console.log('TTT Likes: ', JSON.stringify(newData, null, 2))
+    //  DevLog('TTT Likes: ', JSON.stringify(newData, null, 2))
       
 
       // Add captured data to the database.
       //db.extAddTweets("likes", newData);
-      //console.log("Likes added from interceptor");
+      //DevLog("Likes added from interceptor");
       
-      console.log(`TTT Endpoints: 1 item received`);
+      DevLog(`TTT Endpoints: 1 item received`);
     } catch (err) {
-      console.log("EndpointsInterceptor failed", err)
+      DevLog("EndpointsInterceptor failed", err)
       //logger.debug(req.method, req.url, res.status, res.responseText);
       //logger.errorWithBanner('Likes: Failed to parse API response', err as Error);
     }

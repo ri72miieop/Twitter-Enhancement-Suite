@@ -72,7 +72,7 @@ async function processRecordsIndexDB() {
   for (const record of records) {
 
     const canScrape = await GlobalCachedData.GetCanScrape(record.user_id)
-    console.log("Interceptor.background.processRecordsIndexDB - canScrape:" + canScrape)
+    DevLog("Interceptor.background.processRecordsIndexDB - canScrape:" + canScrape)
     if(!canScrape) {DevLog("User is blocked from scraping"); continue;}
 
 
@@ -111,7 +111,7 @@ async function processRecordsIndexDB() {
       )
       // Mark the tweet as saved after processing
       //await tweetStorage.markAsSaved(tweet.id)
-      console.log(
+      DevLog(
         "Interceptor.background.processRecordsIndexDB - record saved:" +
           record.item_id
       )
@@ -293,11 +293,11 @@ async function processTweet(data: Tweet, userid: string) {
   )
 
   const items = TwitterDataMapper.mapAll(data)
-  console.log("got " + items.length + " items in processJSON", items)
+  DevLog("got " + items.length + " items in processJSON", items)
   let originator_id = data.rest_id 
   for (let i=0;i<items.length;i++) {
     const item = items[i];
-    console.log(item)
+    DevLog(item)
     const { account, profile, tweet, media, urls, mentions } = item
     
     // Account
@@ -507,7 +507,7 @@ async function processTweet(data: Tweet, userid: string) {
 //      await indexDB.tweets.update(tweet.rest_id,{timestamp: new Date().getTime()})
 //      // Mark the tweet as saved after processing
 //      //await tweetStorage.markAsSaved(tweet.id)
-//      console.log("Tweet saved:" + itemToInsert.tweet_id)
+//      DevLog("Tweet saved:" + itemToInsert.tweet_id)
 //    } catch (error) {
 //      DevLog("Error processing tweet:" + error)
 //    }
@@ -518,6 +518,7 @@ async function processTweet(data: Tweet, userid: string) {
 
 // Run processTweets every 10 minutes
 //setInterval(processTweets, 1 * 35 * 1000)
-setInterval(processRecordsIndexDB, 1 * 10 * 1000)
+const interval = parseInt(process.env.BACKGROUND_PROCESS_UPLOAD_DATA_INTERVAL_MS || "60000")
+setInterval(processRecordsIndexDB, interval);
 // Initial run
 //processTweets()

@@ -147,9 +147,9 @@ const SignIn = () => {
       if (error) {
         setError(error.message);
       }
-      if (data) {
-        console.log("data " + JSON.stringify(data), "debug");
-      }
+      //if (data) {
+      //  DevLog("data " + JSON.stringify(data), "debug");
+      //}
     } catch (error) {
       setError(error.message);
     } finally {

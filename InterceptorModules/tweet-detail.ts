@@ -1,6 +1,7 @@
 import { isTimelineEntryTweet, extractTimelineTweet, isTimelineEntryConversationThread } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
 import type { TimelineInstructions, Tweet, TimelineAddEntriesInstruction, TimelineTweet, TimelineAddToModuleInstruction } from "./types";
+import { DevLog } from "~utils/devUtils";
 
 
 interface TweetDetailResponse {
@@ -68,15 +69,15 @@ export const TweetDetailInterceptor: Interceptor = (req, res) => {
     // Dispatch a custom event
     for(const tweet of newData) {
       const eventObject = { detail: {data:tweet, type: "tweet-detail", originator_id: tweet.rest_id, item_id: tweet.rest_id }}
-      console.log("Sending intercepted data to IndexDB:", eventObject)
+      DevLog("Sending intercepted data to IndexDB:", eventObject)
       window.dispatchEvent(new CustomEvent('dataInterceptedEvent', eventObject));
     }
     // Add captured tweets to the database.
     //db.extAddTweets(ext.name, newData);
-    //console.log('TTT TweetDetail: ', JSON.stringify(newData, null, 2))
-    console.log(`TTT TweetDetail: ${newData.length} items received`);
+    //DevLog('TTT TweetDetail: ', JSON.stringify(newData, null, 2))
+    DevLog(`TTT TweetDetail: ${newData.length} items received`);
   } catch (err) {
-    console.log('TTT TweetDetail: Failed to parse API response', err)
+    DevLog('TTT TweetDetail: Failed to parse API response', err)
     //logger.debug(req.method, req.url, res.status, res.responseText);
     //logger.errorWithBanner('TweetDetail: Failed to parse API response', err as Error);
   }

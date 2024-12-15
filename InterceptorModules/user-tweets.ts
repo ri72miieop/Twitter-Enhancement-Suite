@@ -91,7 +91,7 @@ export const UserTweetsInterceptor: Interceptor = (req, res) => {
     //db.extAddTweets(ext.name, newData);
      // Dispatch a custom event
      for(const tweet of newData) {
-        console.log("Sending intercepted data to IndexDB:", tweet.rest_id)
+        DevLog("Sending intercepted data to IndexDB:", tweet.rest_id)
         window.dispatchEvent(new CustomEvent('dataInterceptedEvent', { detail: {data:tweet, type: "user-tweets", originator_id: tweet.rest_id, item_id: tweet.rest_id }}));
       }
 

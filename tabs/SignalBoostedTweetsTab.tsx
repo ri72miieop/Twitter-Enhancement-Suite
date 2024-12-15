@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 import { supabase } from '~core/supabase';
 import { getUser } from '~utils/dbUtils';
+import { DevLog } from '~utils/devUtils';
 
 interface BoostedTweet {
   tweet_id: string;
@@ -34,7 +35,7 @@ export const SignalBoostedTweetsTab: React.FC = () => {
         setError('User not authenticated');
         return;
       }
-      console.log("calling rpc for ", user.id)
+      DevLog("calling rpc for ", user.id)
       const { data, error: rpcError } = await supabase.rpc(
         'get_boosted_tweets',
         { p_viewer_id: user.id, p_limit: 50 }

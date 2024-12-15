@@ -10,8 +10,9 @@ import { HomeTimelineInterceptor } from "~InterceptorModules/home-timeline"
 import { LikesInterceptor } from "~InterceptorModules/Likes"
 import { TweetDetailInterceptor } from "~InterceptorModules/tweet-detail"
 import { UserTweetsInterceptor } from "~InterceptorModules/user-tweets"
-import { DevLog } from "~utils/devUtils"
+import { DevLog, isDev} from "~utils/devUtils"
 import { EndpointsInterceptor } from "~InterceptorModules/endpoints"
+import { SearchTimelineInterceptor } from "~InterceptorModules/search-timeline"
 
 //inspo: https://github.com/prinsss/twitter-web-exporter/blob/main/src/core/extensions/manager.ts#L59
 export const config: PlasmoCSConfig = {
@@ -41,16 +42,18 @@ const injectInterceptor = () => {
         TweetDetailInterceptor,
         UserTweetsInterceptor,
         FavoriteTweetInterceptor,
-        EndpointsInterceptor
+        SearchTimelineInterceptor
       ]
+      if(isDev) {
+        Interceptors.push(EndpointsInterceptor)
+      }
+      
 
       const inter = function (req, res) {
         if (
           req.url.includes("video.twimg.com") //|| req.url.includes("api/1.1") || req.url.includes("api/2") || req.url.includes("x.com/1.1") ||   req.url.includes("i/api/fleets/v1/") || req.url.includes("ExploreSidebar")
         )
           return
-
-        console.log(req.url)
 
         for (const interceptor of Interceptors) {
           interceptor(req, res)

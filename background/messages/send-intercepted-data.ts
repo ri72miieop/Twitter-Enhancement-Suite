@@ -25,21 +25,21 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
  
 
    const type = req.body.type;
- console.log("Interceptor.background.message - send-intercepted-data: Received intercepted data:", req.body)
+ DevLog("Interceptor.background.message - send-intercepted-data: Received intercepted data:", req.body)
 
- console.log("Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:", req.body.originator_id)
+ DevLog("Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:", req.body.originator_id)
  
    try {
        //const functionToCall = processFunctions[type]
        //if(!functionToCall) throw new Error(`No function to call for type: ${type}`)
         
-       console.log("Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:", req.body.originator_id)
+       DevLog("Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:", req.body.originator_id)
        await processInterceptedData(req.body.data, type, req.body.originator_id,req.body.item_id, req.body.userid);
        //await functionToCall(req.body.data, type, user);
        
      res.send({ success: true });
    } catch (error) {
-     console.log(`Error sending ${type}: ${error.message}`, "error"); 
+     DevLog(`Error sending ${type}: ${error.message}`, "error"); 
      res.send({ success: false, error: error.message });
    }
  
@@ -49,7 +49,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
 async function processInterceptedData(data:string, type: string, originator_id: string, item_id: string, userid: string){
 
-  console.log("got data",originator_id)
+  DevLog("got data",originator_id)
 
   // Check for existing records in IndexDB
   const existingRecords = (await indexDB.data
@@ -68,7 +68,7 @@ async function processInterceptedData(data:string, type: string, originator_id: 
   //    
   //    
   //    if (recordTime > expiryTime) {
-  //      console.log(`Interceptor.background.message.expiry - send-intercepted-data: new record is less than ${expirySeconds} seconds old, skipping:`, originator_id);
+  //      DevLog(`Interceptor.background.message.expiry - send-intercepted-data: new record is less than ${expirySeconds} seconds old, skipping:`, originator_id);
   //      return;
   //    }
   //  }
@@ -77,7 +77,7 @@ async function processInterceptedData(data:string, type: string, originator_id: 
   
   const { data:dbdata, error } = await supabase.from("temporary_data").select("originator_id,item_id,timestamp").eq("originator_id", originator_id).eq("item_id", item_id).eq("type", type).order("timestamp",{ascending:false, nullsFirst:false}).limit(1);
   if(dbdata && dbdata.length > 0 && dbdata[0].timestamp && new Date(dbdata[0].timestamp).getTime() > expiryTime) {
-    console.log(`Interceptor.background.message.expiry - send-intercepted-data: new record is less than ${expirySeconds} seconds old on DB, skipping record: ${originator_id}`)
+    DevLog(`Interceptor.background.message.expiry - send-intercepted-data: new record is less than ${expirySeconds} seconds old on DB, skipping record: ${originator_id}`)
     return;
   }
   indexDB.data.put( {timestamp: null, type: type, originator_id: originator_id, item_id: item_id, data: data, user_id: userid});
@@ -88,25 +88,25 @@ async function processInterceptedData(data:string, type: string, originator_id: 
 
 //async function processInterceptedTweet(tweet: Tweet, type: string, user: UserMinimal){
 //
-//  console.log("got tweet",tweet.rest_id)
+//  DevLog("got tweet",tweet.rest_id)
 //  indexDB.tweets.put( {timestamp: null, ...tweet}, tweet.rest_id);
 //
-//      console.log("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
+//      DevLog("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
 //}
 //
 //async function processInterceptedBookmarks(tweet: Tweet, type: string, user: UserMinimal){
 //
-//  console.log("got tweet",tweet.rest_id)
+//  DevLog("got tweet",tweet.rest_id)
 //  indexDB.bookmarks.put( {timestamp: null, ...tweet, user_id: user.id}, tweet.rest_id);
 //
-//      console.log("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
+//      DevLog("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
 //}
 //
 //async function processInterceptedFollowing(user: User, type: string, userMinimal : UserMinimal){
-//  console.log("got user",user.rest_id)
+//  DevLog("got user",user.rest_id)
 //  indexDB.users.put( {timestamp: null, ...user}, user.rest_id);
 //
-//      console.log("user saved to IndexDB from RELAY:" + user.rest_id)
+//      DevLog("user saved to IndexDB from RELAY:" + user.rest_id)
 //}
 
 

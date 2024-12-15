@@ -176,7 +176,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   if(preferences && preferences.enableSignalBoostingUrls) {
     TweetEnhancements.enhanceSignalBoostingUrls(tweetElement, async ()=> {
       const user = await getUser();
-      console.log("signal boosting", tweetData.id, user.id)
+      DevLog("signal boosting", tweetData.id, user.id)
       await supabase.from("signal_boosts").upsert({
         tweet_id: tweetData.id,
         boosted_by: user.id

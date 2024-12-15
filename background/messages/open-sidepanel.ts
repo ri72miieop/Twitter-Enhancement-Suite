@@ -1,4 +1,5 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
+import { DevLog } from "~utils/devUtils"
 
 // Define message metadata type
 type MessagesMetadata = {
@@ -9,7 +10,7 @@ type MessagesMetadata = {
 
 // Update handler with the metadata type
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
-    console.log("Opening side panel")
+    DevLog("Opening side panel")
     try {
         if(req.body.open) {
             // Get the current window

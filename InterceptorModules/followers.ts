@@ -3,6 +3,7 @@ import type { User } from "./types";
 import { extractDataFromResponse, extractTimelineUser } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
 import type { TimelineInstructions } from "./types";
+import { DevLog } from "~utils/devUtils";
 
 
 interface FollowersResponse {
@@ -36,16 +37,16 @@ export const FollowersInterceptor: Interceptor = (req, res) => {
 
     // Add captured data to the database.
     //db.extAddUsers(ext.name, newData);
-    console.log('TTT Followers: ', newData)
+    DevLog('TTT Followers: ', newData)
     // Dispatch a custom event
     for(const user of newData) {
-      console.log("Sending intercepted data to IndexDB:", user.rest_id)
+      DevLog("Sending intercepted data to IndexDB:", user.rest_id)
       window.dispatchEvent(new CustomEvent('dataInterceptedEvent', { detail: {data:user, type: "followers", originator_id: user.rest_id }}));
     }
-    console.log('TTT Followers: ', JSON.stringify(newData, null, 2))
-    console.log(`TTT Followers: ${newData.length} items received`);
+    DevLog('TTT Followers: ', JSON.stringify(newData, null, 2))
+    DevLog(`TTT Followers: ${newData.length} items received`);
   } catch (err) {
-    console.log('TTT Followers: Failed to parse API response', err)
+    DevLog('TTT Followers: Failed to parse API response', err)
     //logger.debug(req.method, req.url, res.status, res.responseText);
     //logger.errorWithBanner('Followers: Failed to parse API response', err as Error);
   }

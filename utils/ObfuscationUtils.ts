@@ -1,4 +1,5 @@
 import React, { type SVGAttributes } from 'react';
+import { DevLog } from './devUtils';
 
 // Helper functions for obfuscation
 export const stringToColor = (str: string): string => {
@@ -39,7 +40,7 @@ export const generateAvatarSVG = (anonymousId: string, size: number = 48, origin
   // Get last 2 digits from the anonymousId
   const digits = anonymousId.replace(/\D/g, ''); // Remove all non-digits
   const lastTwoDigits = digits.slice(-2).padStart(2, '0');
-  console.log('anonymousId', anonymousId, 'lastTwoDigits', lastTwoDigits, 'originalUsername', originalUsername);
+  DevLog('anonymousId', anonymousId, 'lastTwoDigits', lastTwoDigits, 'originalUsername', originalUsername);
   
   // Generate pattern seed
   const patternSeed = Array.from(anonymousId).reduce((acc, char) => acc + char.charCodeAt(0), 0);

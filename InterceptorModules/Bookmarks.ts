@@ -37,15 +37,15 @@ export const BookmarksInterceptor: Interceptor = (req, res) => {
     
     // Dispatch a custom event
     for(const record of newData) {
-      console.log("Sending intercepted data to IndexDB:", record.rest_id)
+      DevLog("Sending intercepted data to IndexDB:", record.rest_id)
       window.dispatchEvent(new CustomEvent('dataInterceptedEvent', { detail: {data:record, type: "bookmarks", originator_id: record.rest_id }}));
     }
-    console.log('TTT Bookmarks: ', JSON.stringify(newData, null, 2))
-    console.log(`TTT Bookmarks: ${newData.length} items received`);
+    DevLog('TTT Bookmarks: ', JSON.stringify(newData, null, 2))
+    DevLog(`TTT Bookmarks: ${newData.length} items received`);
     // Add captured data to the database.
     //db.extAddTweets(ext.name, newData);
-    console.log('TTT Bookmarks: ', JSON.stringify(newData, null, 2))
-    console.log(`TTT Bookmarks: ${newData.length} items received`);
+    DevLog('TTT Bookmarks: ', JSON.stringify(newData, null, 2))
+    DevLog(`TTT Bookmarks: ${newData.length} items received`);
     //logger.info(`Bookmarks: ${newData.length} items received`);
   } catch (err) {
     //logger.debug(req.method, req.url, res.status, res.responseText);
