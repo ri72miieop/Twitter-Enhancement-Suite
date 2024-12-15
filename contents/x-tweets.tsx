@@ -160,7 +160,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   }, [tweetData.id, tweetElement, userId])
   //DevLog(tweetData);
   if (tweetData.engagement.likes > 100000) {
-    TweetEnhancements.enhanceHighEngagementTweet(tweetElement, tweetData.engagement.likes)
+    TweetEnhancements.enhanceHighEngagementTweet(tweetElement)
   }
 
   if (preferences && preferences.showRelationshipBadges &&  userRelationshipStatus ) {
@@ -199,7 +199,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   //TweetEnhancements.applyTextModifiers(tweetElement)
 
   //NotEndorsedAnymore(tweetElement)
-
+  return(<></>);
   return (
     <>
       {(userRelationshipStatus.isMutual ||
