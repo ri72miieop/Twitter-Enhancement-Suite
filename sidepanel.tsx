@@ -10,7 +10,7 @@ import { getUser } from "~utils/dbUtils"
 import FeedbackTab from "~tabs/FeedbackTab"
 import { supabase } from "~core/supabase"
 import { DevLog, isDev } from "~utils/devUtils"
-import TweetEnhancementConfig from "~tabs/TweetEnhancementConfig"
+import TweetEnhancementConfigTab from "~tabs/TweetEnhancementConfigTab"
 import ShadCN from "~tabs/ShadCN"
 import SignalBoostedTweets, { SignalBoostedTweetsTab } from "~tabs/SignalBoostedTweetsTab"
 
@@ -61,13 +61,6 @@ const navOptions = [
     component: FeedbackTab
   },
   {
-    key: "tweetEnhancement",
-    isEnabled: true,
-    label: "Tweet Enhancement",
-    description: "Configure tweet enhancement features.",
-    component: TweetEnhancementConfig
-  },
-  {
     key: "ShadCN",
     isEnabled: isDev,
     label: "ShadCN",
@@ -76,31 +69,38 @@ const navOptions = [
   },
   {
     key: "signalBoostedTweets",
-    isEnabled: true,
+    isEnabled: isDev,
     label: "Signal Boosted Tweets",
     description: "See tweets that have been boosted by this user.",
     component: SignalBoostedTweetsTab
+  },
+  {
+    key: "tweetEnhancement",
+    isEnabled: true,
+    label: "Tweet Enhancement",
+    description: "Configure tweet enhancement features.",
+    component: TweetEnhancementConfigTab
   }
 ]
 
 const IndexSidePanel = () => {
 
-
-  const [activeOption, setActiveOption] = useState(navOptions[0].key)
+  const enabledNavOptions = isDev ? navOptions : navOptions.filter(option => option.isEnabled)
+  const [activeOption, setActiveOption] = useState(enabledNavOptions[0].key)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const [user, setUser] = useState(getUser())
 
 
-  const currentIndex = navOptions.findIndex(option => option.key === activeOption)
-  const prevOption = navOptions[(currentIndex - 1 + navOptions.length) % navOptions.length]
-  const nextOption = navOptions[(currentIndex + 1) % navOptions.length]
+  const currentIndex = enabledNavOptions.findIndex(option => option.key === activeOption)
+  const prevOption = enabledNavOptions[(currentIndex - 1 + enabledNavOptions.length) % enabledNavOptions.length]
+  const nextOption = enabledNavOptions[(currentIndex + 1) % enabledNavOptions.length]
 
 
 
   const handleOptionChange = (direction) => {
-    const newIndex = (currentIndex + direction + navOptions.length) % navOptions.length
-    setActiveOption(navOptions[newIndex].key)
+    const newIndex = (currentIndex + direction + enabledNavOptions.length) % enabledNavOptions.length
+    setActiveOption(enabledNavOptions[newIndex].key)
   }
 
   useEffect(() => {
@@ -114,7 +114,7 @@ const IndexSidePanel = () => {
     
   }, [])
 
-  const ActiveComponent = navOptions.find(option => option.key === activeOption)?.component || null
+  const ActiveComponent = enabledNavOptions.find(option => option.key === activeOption)?.component || null
   
   return (<>
   {user && (
@@ -131,11 +131,11 @@ const IndexSidePanel = () => {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               style={activeOptionStyle}
             >
-              {navOptions.find(option => option.key === activeOption)?.label}▼
+              {enabledNavOptions.find(option => option.key === activeOption)?.label}▼
             </button>
             {isDropdownOpen && (
               <div style={dropdownStyle}>
-                {navOptions.map((option) => (
+                {enabledNavOptions.map((option) => (
                   <div 
                     key={option.key}
                     onClick={() => {
