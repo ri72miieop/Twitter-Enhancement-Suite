@@ -4,7 +4,7 @@ import { DevLog } from './devUtils';
 import { GlobalCachedData } from '~contents/Storage/CachedData';
 
 export const TweetEnhancements = {
-    enhanceTweet: async (tweetElement, badgeText, backgroundColor, hoverBackgroundColor) => {
+    enhanceTweet: async (tweetElement, badgeText,backgroundColor, gradientBackgroundColor, hoverGradientBackgroundColor) => {
         try {
             // Find the avatar and username elements
             const avatarContainer = tweetElement.querySelector('[data-testid="Tweet-User-Avatar"]');
@@ -31,7 +31,7 @@ export const TweetEnhancements = {
             if (nameContainer && !nameContainer.querySelector('.mutual-badge')) {
                 const badge = document.createElement('span');
                 badge.className = 'mutual-badge';
-                badge.style.backgroundColor = '#FF1493';
+                badge.style.backgroundColor = backgroundColor; //'#FF1493';
                 badge.style.color = 'white';
                 badge.style.padding = '2px 8px';
                 badge.style.borderRadius = '12px';
@@ -47,19 +47,19 @@ export const TweetEnhancements = {
             const tweetCard = tweetElement.closest('article');
             if (tweetCard) {
                 // Add gradient background
-                tweetCard.style.background = backgroundColor;
-                tweetCard.style.borderLeft = '4px solid #FF1493';
+                //tweetCard.style.background = backgroundColor;
+                tweetCard.style.borderRight = `1px solid ${backgroundColor}`;
                 tweetCard.style.transition = 'all 0.3s ease';
                 
                 // Enhanced hover effect
                 tweetCard.addEventListener('mouseenter', () => {
                     tweetCard.style.transform = 'translateX(4px)';
-                    tweetCard.style.background = hoverBackgroundColor;
+                    //tweetCard.style.background = hoverBackgroundColor;
                 });
                 
                 tweetCard.addEventListener('mouseleave', () => {
                     tweetCard.style.transform = 'translateX(0)';
-                    tweetCard.style.background = backgroundColor;
+                    //tweetCard.style.background = backgroundColor;
                 });
             }
 
@@ -107,15 +107,15 @@ export const TweetEnhancements = {
     },
 
     enhanceMutualTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'MUTUAL', 'linear-gradient(45deg, #fff 0%, #ffe6f3 100%)', 'linear-gradient(45deg, #fff 0%, #ffd6ec 100%)');
+        return TweetEnhancements.enhanceTweet(tweetElement, 'MUTUAL', '#FF7A32', 'linear-gradient(45deg, #fff 0%, #ffe6f3 100%)', 'linear-gradient(45deg, #fff 0%, #ffd6ec 100%)');
     },
 
     enhanceFollowerTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWER', 'linear-gradient(45deg, #e0f7fa 0%, #b2ebf2 100%)', 'linear-gradient(45deg, #e0f7fa 0%, #80deea 100%)');
+        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWER','#2ED5E8', 'linear-gradient(45deg, #e0f7fa 0%, #b2ebf2 100%)', 'linear-gradient(45deg, #e0f7fa 0%, #80deea 100%)');
     },
 
     enhanceFollowingTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWING', 'linear-gradient(45deg, #ffe0b2 0%, #ffcc80 100%)', 'linear-gradient(45deg, #ffe0b2 0%, #ffb74d 100%)');
+        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWING','#92FF32', 'linear-gradient(45deg, #ffe0b2 0%, #ffcc80 100%)', 'linear-gradient(45deg, #ffe0b2 0%, #ffb74d 100%)');
     },
 
     obfuscateUser: async (tweetElement: HTMLElement) => {
@@ -132,7 +132,7 @@ export const TweetEnhancements = {
             //}
             
             if (!avatarContainer || !usernameElement || !displayNameElement) {
-                console.log('Could not find required elements', { 
+                DevLog('Could not find required elements', { 
                     avatarFound: !!avatarContainer, 
                     usernameFound: !!usernameElement, 
                     displayNameFound: !!displayNameElement 
@@ -304,104 +304,35 @@ export const TweetEnhancements = {
             console.error('Error enhancing signal boosting URLs:', error);
         }
     },
-    enhanceHighEngagementTweet: async (tweetElement: HTMLElement, engagementCount: number) => {
+    enhanceHighEngagementTweet: async (tweetElement: HTMLElement) => {
         try {
-            const tweetContent = tweetElement.querySelector('[data-testid="tweetText"]');
-            const mediaContainer = tweetElement.querySelector('[data-testid="tweetPhoto"], [data-testid="videoPlayer"]');
-            if (!tweetContent) return;
-
-            // Create wrapper
-            const wrapper = document.createElement('div');
-            Object.assign(wrapper.style, {
-                position: 'relative',
-                transition: 'all 0.3s ease',
-                borderRadius: '16px',
-                overflow: 'hidden'
-            });
-
-            // Move content into wrapper
-            tweetContent.parentNode.insertBefore(wrapper, tweetContent);
-            wrapper.appendChild(tweetContent);
-            if (mediaContainer) {
-                wrapper.appendChild(mediaContainer);
-                mediaContainer.style.filter = 'blur(8px)';
-            }
-            tweetContent.style.filter = 'blur(8px)';
-
-            // Create overlay
-            const overlay = document.createElement('div');
-            Object.assign(overlay.style, {
-                position: 'absolute',
-                top: '0',
-                left: '0',
-                width: '100%',
-                height: '100%',
-                backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '20px',
-                transition: 'all 0.3s ease'
-            });
-
-            // Create content container
-            const contentContainer = document.createElement('div');
-            Object.assign(contentContainer.style, {
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px'
-            });
-
-            // Add title
-            const title = document.createElement('div');
-            title.textContent = 'High Engagement Tweet';
-            Object.assign(title.style, {
-                fontSize: '16px',
-                fontWeight: '700',
-                color: 'rgb(15, 20, 25)'
-            });
-
-            // Add engagement count
-            const engagement = document.createElement('div');
-            engagement.textContent = `${engagementCount.toLocaleString()} likes`;
-            Object.assign(engagement.style, {
-                fontSize: '14px',
-                color: 'rgb(83, 100, 113)'
-            });
-
-            // Assemble overlay
-            contentContainer.appendChild(title);
-            contentContainer.appendChild(engagement);
-            overlay.appendChild(contentContainer);
-            wrapper.appendChild(overlay);
-
-            // Handle mouse enter to reveal content
-            wrapper.addEventListener('mouseenter', () => {
-                tweetContent.style.filter = 'none';
-                if (mediaContainer) {
-                    mediaContainer.style.filter = 'none';
-                }
-                overlay.style.opacity = '0';
-                setTimeout(() => overlay.remove(), 300);
-
-                // Add subtle indicator
-                const indicator = document.createElement('div');
-                Object.assign(indicator.style, {
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    fontSize: '12px',
-                    color: 'rgb(83, 100, 113)',
-                    padding: '4px 12px',
-                    borderRadius: '9999px',
-                    backgroundColor: 'rgba(29, 155, 240, 0.1)'
+            // Skip if already enhanced
+            if (tweetElement.classList.contains('high-engagement-enhanced')) return;
+            tweetElement.classList.add('high-engagement-enhanced');
+    
+            // Find the main tweet content container
+            const tweetCard = tweetElement.querySelectorAll('div[aria-labelledby],div[lang]');
+            
+            if (!tweetCard) return;
+            for (const element of tweetCard) {
+                if (!(element instanceof HTMLElement)) continue;
+                // Apply initial dimmed state
+                element.style.transition = 'all 0.2s ease';
+                element.style.filter = 'blur(3px) brightness(0.7)';
+                element.style.opacity = '0.5';
+    
+                // Add hover interactions
+                element.addEventListener('mouseenter', () => {
+                    element.style.filter = 'none';
+                    element.style.opacity = '1';
                 });
-                indicator.textContent = 'High Engagement';
-                wrapper.appendChild(indicator);
-            });
-
+    
+                element.addEventListener('mouseleave', () => {
+                    element.style.filter = 'blur(3px) brightness(0.7)';
+                    element.style.opacity = '0.5';
+                });
+            }
+    
         } catch (error) {
             console.error('Error enhancing high engagement tweet:', error);
         }
@@ -421,7 +352,7 @@ export const TweetEnhancements = {
         const replacements = await GlobalCachedData.GetTextModifiers() || [];
         if(!replacements || replacements.length == 0) return;
         // Apply each replacement
-        console.log("replacements " + replacements.length, (replacements))
+        DevLog("replacements " + replacements.length, (replacements))
         replacements.forEach(replacement => {
             newText = newText.replace(
                 new RegExp(replacement.from, 'g'), 
