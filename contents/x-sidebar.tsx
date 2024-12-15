@@ -7,7 +7,7 @@ import { sendToBackground } from "@plasmohq/messaging"
 import "./x-sidebar-base.css"
 
 export const config: PlasmoCSConfig = {
-  matches: ["https://*.x.com/*", "https://*.twitter.com/*"]
+  matches: [ "https://*.twittter.com/*"]
 }
 
 // Inject into the ShadowDOM
