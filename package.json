@@ -71,7 +71,6 @@
     "permissions": [
       "storage",
       "sidePanel",
-      "webRequest",
       "tabs",
       "activeTab"
     ],
