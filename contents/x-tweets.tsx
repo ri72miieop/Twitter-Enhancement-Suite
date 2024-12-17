@@ -159,7 +159,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     }
   }, [tweetData.id, tweetElement, userId])
   //DevLog(tweetData);
-  if (tweetData.engagement.likes > 100000) {
+  if (preferences && preferences.blurViralTweets && tweetData.engagement.likes > 100000) {
     TweetEnhancements.enhanceHighEngagementTweet(tweetElement)
   }
 
