@@ -66,7 +66,7 @@ function SearchTab() {
 
   return (
     <>
-      <h2>Advanced Twitter Search</h2>
+      <h2>Advanced Community Archive Search</h2>
       <input 
         onChange={(e) => setSearch(e.target.value)} 
         value={search} 
