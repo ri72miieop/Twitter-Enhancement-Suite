@@ -370,6 +370,24 @@ export const TweetEnhancements = {
         textElement.addEventListener('mouseleave', () => {
             textElement.textContent = newText;
         });
+    },
+
+    enhanceTweetWihtLongTweetText: async (tweetElement: HTMLElement, text: string) => {
+        const tweetTextElement = tweetElement.querySelector('[data-testid="tweetText"]') as HTMLElement; 
+        const tweetTextSpan = tweetElement.querySelector('[data-testid="tweetText"] span');
+        
+        if(!tweetTextSpan) return;
+        const tweetShowMoreElement = tweetElement.querySelector('[data-testid="tweet-text-show-more-link"]');
+        tweetShowMoreElement?.remove();
+
+        const originalText = tweetTextSpan.textContent;
+        let newText = text;
+
+        
+        //tweetElement.style.display = 'block';
+        tweetTextElement.style.webkitLineClamp = 'none';
+
+        tweetTextSpan.textContent = text;
     }
         
 };

@@ -18,6 +18,8 @@ import { scrapeTweet } from "./scrapeTweet"
 import { GlobalCachedData, type TweetEnhancementPreferences } from "./Storage/CachedData"
 import TweetStorage from "./Storage/TweetsStorage"
 import { DevLog, isDev } from "~utils/devUtils"
+import { sendToBackground } from "@plasmohq/messaging"
+import type { InsertTweets } from "~types/database-explicit-types"; 
 
 export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
   element.getAttribute("aria-labelledby") + `-xtweets`
@@ -84,6 +86,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   })
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [userId, setUserId] = useState("")
+  const [interceptedTweet, setInterceptedTweet] = useState<InsertTweets | null>(null)
 
   //tweetStorage.addTweet(tweetData);
 
@@ -118,6 +121,29 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       return () => clearInterval(interval)
     }, [tweetData.id, tweetElement])
   }
+
+  useEffect(() => {
+    
+
+    new Promise(resolve => setTimeout(resolve, 2000))
+    .then(async () => {
+    const response = await sendToBackground({
+      name: "get-intercepted-tweet",
+      body: {
+        originator_id: tweetData.id
+      }
+    })
+
+    console.log("GOT RESPONSE",JSON.stringify(response), "for tweet", tweetData.id)
+    setInterceptedTweet(response.tweet)
+    })
+  },[])
+
+  if(interceptedTweet && interceptedTweet.full_text && interceptedTweet.full_text.length > 280){ // && interceptedTweet.full_text.length < 2000) {
+    DevLog("Enhancing tweet id", interceptedTweet.tweet_id, "with text", interceptedTweet.full_text)
+    TweetEnhancements.enhanceTweetWihtLongTweetText(tweetElement, interceptedTweet.full_text)
+  }
+
 
   useEffect(() => {
     async function checkRelationships() {

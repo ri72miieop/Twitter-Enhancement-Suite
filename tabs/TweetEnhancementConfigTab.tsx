@@ -46,7 +46,7 @@ function TweetEnhancementConfigTab() {
          <h3 className="text-lg font-medium">{prefMetadata.title}</h3>
          <p className="text-sm text-gray-500">{prefMetadata.subtitle}</p>
        </div>
-       <Switch className={`bg-blue-600`} onCheckedChange={(checked) => updatePreference(prefMetadata.preference as keyof TweetEnhancementPreferences, checked)} />
+       <Switch className={`bg-blue-600`} checked={preferences?.[prefMetadata.preference as keyof TweetEnhancementPreferences] ?? false} onCheckedChange={(checked) => updatePreference(prefMetadata.preference as keyof TweetEnhancementPreferences, checked)} />
      </div>
 
     ))}

@@ -36,6 +36,7 @@ export interface TweetEnhancementPreferences {
   showOriginalPosterBadge: boolean
   enableSignalBoostingUrls: boolean
   blurViralTweets: boolean
+  enhanceLongTweetText: boolean
 }
 export interface PreferenceMetadata {
   preference: keyof TweetEnhancementPreferences;
@@ -49,7 +50,8 @@ export class TweetEnhancementPreferencesManager {
     showRelationshipBadges: false,
     showOriginalPosterBadge: false,
     enableSignalBoostingUrls: false,
-    blurViralTweets: false
+    blurViralTweets: false,
+    enhanceLongTweetText: true
   };
 
   static getDefaultPreferences(): TweetEnhancementPreferences {
@@ -87,6 +89,12 @@ export class TweetEnhancementPreferencesManager {
         title: "Enable Signal Boosting URLs",
         subtitle: "Allow sharing links through signal boosting features",
         isEnabled: isDev
+      },
+      {
+        preference: "enhanceLongTweetText",
+        title: "Enhance Tweet with LongTweet Text",
+        subtitle: "Stop clicking on 'Show more' to read long tweets, activate this to automatically expand long tweets",
+        isEnabled: true
       }
     ];
   }
@@ -110,7 +118,10 @@ class CachedData {
 
       // If not in memory, get from storage
       const savedPrefs = await CachedData.storage.get<TweetEnhancementPreferences>(CachedData.PREFERENCES_KEY);
-      const prefs = savedPrefs || defaultPreferences;
+      const prefs = Object.keys(defaultPreferences).reduce((acc, key) => ({
+        ...acc,
+        [key]: savedPrefs?.[key] ?? defaultPreferences[key]
+      }), {} as TweetEnhancementPreferences);
 
       // Update in-memory cache
       CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
