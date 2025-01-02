@@ -240,7 +240,7 @@ class CachedData {
   async GetCanScrape(userid: string): Promise<boolean> {
     const key = CachedData.CAN_SCRAPE_KEY + userid;
     return this.fetchAndCache<boolean>(key, async () => {
-      const {data, error} = await supabase.from("blocked_scraping_users").select("*").eq("account_id", userid)
+      const {data, error} = await supabase.from("tes_blocked_scraping_users").select("*").eq("account_id", userid)
       if(error) throw error
       return data.length==0
     }, 45 * 1000)
