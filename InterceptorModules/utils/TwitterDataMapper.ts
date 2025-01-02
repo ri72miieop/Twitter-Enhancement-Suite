@@ -81,6 +81,9 @@ export class TwitterDataMapper {
           //conversation_id: legacy.conversation_id_str,
           //possibly_sensitive: legacy.possibly_sensitive || false,
           //views_count: Number(tweetData.views?.count) || 0
+          reply_to_tweet_id: legacy.in_reply_to_status_id_str || null,
+          reply_to_user_id: legacy.in_reply_to_user_id_str || null,
+          reply_to_username: legacy.in_reply_to_screen_name || null,
         };
       }
     
@@ -120,7 +123,7 @@ export class TwitterDataMapper {
     
         return media.map(m => ({
           tweet_id: tweetId,
-          media_id: m.media_key,
+          media_id: m.id_str,
           media_type: m.type,
           media_url: m.media_url_https,
           preview_url: m.url,
