@@ -88,6 +88,8 @@ async function processRecordsIndexDB() {
       if (record.timestamp != null) continue
       // For now, processing is just logging the tweet
       record.timestamp = newDate
+      record.type = "api_" + record.type
+      record.user_id = await hashUserId(record.user_id)
 
       const { data, error } = await supabase
         .from("temporary_data")
@@ -99,7 +101,7 @@ async function processRecordsIndexDB() {
             JSON.stringify(error),
           "warn"
         )
-      await processType(record.type, record.data,record.user_id)
+      await processType(record.type, record.data,record.user_id,newDate)
       //await indexDB.tweets.put({ ... tweet}, tweet.rest_id);
       const localDbUpdates = await indexDB.data.update(record, {
         timestamp: newDate,
@@ -133,125 +135,14 @@ async function processRecordsIndexDB() {
   }
 }
 
-/*async function processType(type: string, data: any) {
-  if(type == "home-timeline") {
 
-      try {
-        const itemToProccess = data as Tweet;
-        DevLog("Interceptor.background.process.home-timeline - Processing tweet:" + itemToProccess.rest_id)
-
-        const account = TwitterDataMapper.mapAccount(itemToProccess);
-        const profile = TwitterDataMapper.mapProfile(itemToProccess);
-        const tweet = TwitterDataMapper.mapTweet(itemToProccess, null);
-
-        let objToInsert : TimedObject = {
-          timestamp: new Date().toISOString(),
-          type: "account",
-          id: account.account_id,
-          data: account
-        } 
-        const {data: accountData,error: accountError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-        //const {data: accountData,error: accountError} = await supabase.from("account").insert(account).select()
-        if(accountError)
-          DevLog(JSON.stringify(accountError))
-
-        objToInsert = { 
-          timestamp: new Date().toISOString(),
-          type: "profile",
-          id: profile.account_id,
-          data: profile
-        } 
-        const {data: profileData,error: profileError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-        if(profileError)
-          DevLog(JSON.stringify(profileError))
-
-       //const {data: accounttData,error: accounttError} = await supabase.from("account").upsert(account).select()
-       //if(accounttError)
-       //  DevLog(JSON.stringify(accounttError))
-
-       //const {data: profiletData,error: profiletError} = await supabase.from("profile").upsert(profile).select()
-       //if(profiletError)
-       //  DevLog(JSON.stringify(profiletError))
-
-        objToInsert = { 
-          timestamp: new Date().toISOString(),
-          type: "tweet",
-          id: tweet.tweet_id,
-          data: tweet
-        } 
-        const {data: tweetData,error: tweetError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-        if(tweetError)
-          DevLog(JSON.stringify(tweetError))
-
-      } catch (error) {
-        DevLog("Interceptor.background.process.home-timeline - Error processing tweet:" + error)
-      }
-    
-  } else if(type == "user-tweets") {
-    try {
-      const itemToProccess = data as Tweet;
-      DevLog("Interceptor.background.process.home-timeline - Processing tweet:" + itemToProccess.rest_id)
-
-      const account = TwitterDataMapper.mapAccount(itemToProccess);
-      const profile = TwitterDataMapper.mapProfile(itemToProccess);
-      const tweet = TwitterDataMapper.mapTweet(itemToProccess, null);
-
-      let objToInsert : TimedObject = {
-        timestamp: new Date().toISOString(),
-        type: "account",
-        id: account.account_id,
-        data: account
-      } 
-      const {data: accountData,error: accountError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-      //const {data: accountData,error: accountError} = await supabase.from("account").insert(account).select()
-      if(accountError)
-        DevLog(JSON.stringify(accountError))
-
-      objToInsert = { 
-        timestamp: new Date().toISOString(),
-        type: "profile",
-        id: profile.account_id,
-        data: profile
-      } 
-      const {data: profileData,error: profileError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-      if(profileError)
-        DevLog(JSON.stringify(profileError))
-
-     //const {data: accounttData,error: accounttError} = await supabase.from("account").upsert(account).select()
-     //if(accounttError)
-     //  DevLog(JSON.stringify(accounttError))
-
-     //const {data: profiletData,error: profiletError} = await supabase.from("profile").upsert(profile).select()
-     //if(profiletError)
-     //  DevLog(JSON.stringify(profiletError))
-
-      objToInsert = { 
-        timestamp: new Date().toISOString(),
-        type: "tweet",
-        id: tweet.tweet_id,
-        data: tweet
-      } 
-      const {data: tweetData,error: tweetError} = await supabase.from("temporary_data").upsert(objToInsert).select()
-      if(tweetError)
-        DevLog(JSON.stringify(tweetError))
-
-    } catch (error) {
-      DevLog("Interceptor.background.process.home-timeline - Error processing tweet:" + error)
-    }
-
-    DevLog("Interceptor.background.process.user-tweets - Processing tweet:" + data.rest_id)
-  }
-}*/
-
-async function processType(type: string, data: any, userid: string) {
+async function processType(type: string, data: any, hashed_userid: string, timestamp: string) {
   try {
-    
-    
-
     switch(type) {
-      case "tweet-detail":
-      case "home-timeline":
-      case "user-tweets":
+      case "api_tweet-detail":
+      case "api_home-timeline":
+      case "api_user-tweets":
+      case "api_search-timeline":
         const itemToProccess = data as Tweet
         DevLog(
           "Interceptor.background.process.home-timeline - Processing tweet:" +
@@ -262,11 +153,11 @@ async function processType(type: string, data: any, userid: string) {
           return;
         }
         
-        processTweet(itemToProccess, userid)
+        processTweet(itemToProccess, hashed_userid,timestamp)
         break;
       
-      case "following":
-      case "followers":
+      case "api_following":
+      case "api_followers":
 
         const userToProcess = data as User
         processUser(userToProcess)
@@ -286,7 +177,27 @@ async function processUser(data: User) {
   )
 }
 
-async function processTweet(data: Tweet, userid: string) {
+async function hashUserId(userId) {
+  try {
+      // Convert the userId to UTF-8 encoded ArrayBuffer
+      const encoder = new TextEncoder();
+      const data = encoder.encode(userId.toString());
+      
+      // Generate hash using SHA-256
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      
+      // Convert ArrayBuffer to hex string
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      return hashHex;
+  } catch (error) {
+      console.error('Error hashing userId:', error);
+      throw error;
+  }
+}
+
+async function processTweet(data: Tweet, hashed_userid: string, timestamp: string) {
   DevLog(
     "Interceptor.background.process_json - Starting with data: " +
       JSON.stringify(data)
@@ -302,11 +213,11 @@ async function processTweet(data: Tweet, userid: string) {
     
     // Account
     let objToInsert: TimedObject = {
-      timestamp: new Date().toISOString(),
-      type: "account",
+      timestamp: timestamp,
+      type: "import_account",
       item_id: account.account_id,
       originator_id: originator_id,
-      user_id: userid,
+      user_id: hashed_userid,
       data: account
     }
     DevLog(
@@ -327,11 +238,11 @@ async function processTweet(data: Tweet, userid: string) {
 
     // Profile
     objToInsert = {
-      timestamp: new Date().toISOString(),
-      type: "profile",
+      timestamp: timestamp,
+      type: "import_profile",
       item_id: profile.account_id,
       originator_id: originator_id,
-      user_id: userid,
+      user_id: hashed_userid,
       data: profile
     }
     DevLog(
@@ -352,11 +263,11 @@ async function processTweet(data: Tweet, userid: string) {
 
     // Tweet
     objToInsert = {
-      timestamp: new Date().toISOString(),
-      type: "tweet",
+      timestamp: timestamp,
+      type: "import_tweet",
       item_id: tweet.tweet_id,
       originator_id: originator_id,
-      user_id: userid,
+      user_id: hashed_userid,
       data: tweet
     }
     DevLog(
@@ -384,11 +295,11 @@ async function processTweet(data: Tweet, userid: string) {
       )
       for (const m of media) {
         objToInsert = {
-          timestamp: new Date().toISOString(),
-          type: "media",
+          timestamp: timestamp,
+          type: "import_media",
           item_id: m.media_id.toString(),
           originator_id: originator_id,
-          user_id: userid,
+          user_id: hashed_userid,
           data: m
         }
         DevLog(
@@ -418,11 +329,11 @@ async function processTweet(data: Tweet, userid: string) {
       )
       for (const u of urls) {
         objToInsert = {
-          timestamp: new Date().toISOString(),
-          type: "url",
+          timestamp: timestamp,
+          type: "import_url",
           item_id: u.tweet_id.toString(),
           originator_id: originator_id,
-          user_id: userid,
+          user_id: hashed_userid,
           data: u
         }
         DevLog(
@@ -452,11 +363,11 @@ async function processTweet(data: Tweet, userid: string) {
       )
       for (const m of mentions) {
         objToInsert = {
-          timestamp: new Date().toISOString(),
-          type: "mention",
+          timestamp: timestamp,
+          type: "import_mention",
           item_id: m.mentioned_user_id,
           originator_id: originator_id,
-          user_id: userid,
+          user_id: hashed_userid,
           data: m
         }
         DevLog(
