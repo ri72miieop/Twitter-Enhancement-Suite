@@ -372,7 +372,7 @@ export const TweetEnhancements = {
         });
     },
 
-    enhanceTweetWihtLongTweetText: async (tweetElement: HTMLElement, text: string) => {
+    enhanceTweetWithLongTweetText: async (tweetElement: HTMLElement, text: string) => {
         const tweetTextElement = tweetElement.querySelector('[data-testid="tweetText"]') as HTMLElement; 
         const tweetTextSpan = tweetElement.querySelector('[data-testid="tweetText"] span');
         
