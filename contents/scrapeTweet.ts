@@ -58,7 +58,8 @@ export interface ScrapedTweet {
       return undefined;
     };
   
-    const tweetLink = tweetElement.querySelector('a[href*="/status/"]')?.getAttribute('href') || '';
+    const tweetLinks = tweetElement.querySelectorAll('a[href*="/status/"]');
+    const tweetLink = tweetLinks[tweetLinks.length - 1]?.getAttribute('href') || '';
     const tweetId = tweetLink.split('/status/')[1]?.split(/[^0-9]/)[0] || '';
     
     if (!tweetId) {
