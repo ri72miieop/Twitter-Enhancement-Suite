@@ -378,18 +378,21 @@ export const TweetEnhancements = {
         
         if(!tweetTextSpan) return;
         const tweetShowMoreElement = tweetElement.querySelector('[data-testid="tweet-text-show-more-link"]');
-        tweetShowMoreElement?.remove();
 
-        if(tweetTextSpan.textContent?.length > 280) { return; }
-        
-        const originalText = tweetTextSpan.textContent;
-        let newText = text;
+        if(tweetShowMoreElement) {
+            tweetShowMoreElement?.remove();
 
-        
-        //tweetElement.style.display = 'block';
-        tweetTextElement.style.webkitLineClamp = 'none';
+            
+            const originalText = tweetTextSpan.textContent;
+            let newText = text;
 
-        tweetTextSpan.textContent = text;
+            
+            //tweetElement.style.display = 'block';
+            tweetTextElement.style.webkitLineClamp = 'none';
+
+            tweetTextSpan.textContent = text;
+        }
+       
     }
         
 };
