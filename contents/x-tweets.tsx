@@ -139,7 +139,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     })
   },[])
 
-  if(interceptedTweet && interceptedTweet.full_text && interceptedTweet.full_text.length > 280){ // && interceptedTweet.full_text.length < 2000) {
+  if(preferences && preferences.enhanceLongTweetText && interceptedTweet && interceptedTweet.full_text && interceptedTweet.full_text.length > 280){ // && interceptedTweet.full_text.length < 2000) {
     DevLog("Enhancing tweet id", interceptedTweet.tweet_id, "with text", interceptedTweet.full_text)
     TweetEnhancements.enhanceTweetWihtLongTweetText(tweetElement, interceptedTweet.full_text)
   }
