@@ -12,6 +12,7 @@ import { DevLog } from "~utils/devUtils"
 import "prod.css"
 import posthog from "~core/posthog"
 import { EXTENSION_ID } from "~utils/consts"
+import { indexDB } from "~utils/IndexDB"
 
 const LoadingSpinner = () => (
   <svg 
@@ -161,6 +162,8 @@ const SignIn = () => {
     try {
       setLoading(true);
       await GlobalCachedData.ResetAllCache();
+      await indexDB.userMentions.clear();
+      await indexDB.data.clear();
       alert("Cache reset successful!");
     } catch (error) {
       DevLog("Error resetting cache:" + error, "error");
