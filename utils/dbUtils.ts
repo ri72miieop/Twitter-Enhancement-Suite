@@ -19,6 +19,11 @@ export const fetchTopTweetsByUser = async (username: string): Promise<any> => {
     username: string;
   }
 
+  export interface UserID{
+    id: string;
+   
+  }
+
 export const getUser = async () => {
   const {data,error} = await supabase.auth.getSession();
   if(error || !data.session) return null;

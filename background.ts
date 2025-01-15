@@ -5,8 +5,6 @@ import type { Tweet, User } from "~InterceptorModules/types"
 import { DevLog } from "~utils/devUtils"
 import { indexDB, type TimedObject } from "~utils/IndexDB"
 import { GlobalCachedData } from "~contents/Storage/CachedData"
-import { getSignedInUser, getUser } from "~utils/dbUtils"
-import type { UserMinimal } from "~utils/dbUtils"
 
 console.log(
   "Live now; make now always the most precious time. Now will never come again."
@@ -49,8 +47,9 @@ async function processTweets() {
   }
 }
 
-async function processRecordsIndexDB() {
 
+
+async function processRecordsIndexDB() {
   const records = await indexDB.data
     .filter((data) => data.timestamp == null)
     .toArray()
@@ -83,6 +82,8 @@ async function processRecordsIndexDB() {
       DevLog("Interceptor.background.processRecordsIndexDB_otherRecords - Skipping record:" + JSON.stringify(otherRecords))
       
     }
+
+    
     const newDate = new Date().toISOString()
     try {
       if (record.timestamp != null) continue
@@ -91,7 +92,12 @@ async function processRecordsIndexDB() {
       record.type = "api_" + record.type
       record.user_id = await hashUserId(record.user_id)
 
-      const { data, error } = await supabase
+      
+      const shouldUpload = await processType(record.type, record.data,record.user_id,newDate)
+
+
+      if(shouldUpload) {
+        const { data, error } = await supabase
         .from("temporary_data")
         .upsert(record)
         .select()
@@ -101,7 +107,9 @@ async function processRecordsIndexDB() {
             JSON.stringify(error),
           "warn"
         )
-      await processType(record.type, record.data,record.user_id,newDate)
+      }
+
+
       //await indexDB.tweets.put({ ... tweet}, tweet.rest_id);
       const localDbUpdates = await indexDB.data.update(record, {
         timestamp: newDate,
@@ -135,6 +143,34 @@ async function processRecordsIndexDB() {
   }
 }
 
+async  function isValidUserMentioned(userId: string) {
+  const userMention = await indexDB.userMentions.get(userId);
+
+  if(userMention) {
+    const mentionTime = new Date(userMention.timestamp);
+    const currentTime = new Date();
+    const timeDiff = currentTime.getTime() - mentionTime.getTime();
+    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    
+    if(hoursDiff <= 24) {
+      return true;
+    }
+  }
+  const { data, error } = await supabase
+  .from("mentioned_users")
+  .select("*")
+  .eq("user_id", userId) 
+  if(error) {
+    DevLog("Interceptor.background.isValidUserMentioned - Error fetching user mentions:" + error)
+    return false;
+  }
+  if(data.length > 0) {
+    const items = data.map(user => ({id:user.user_id,timestamp: new Date().toISOString()}))
+    await indexDB.userMentions.bulkAdd(items);
+    return true;
+  }
+
+}
 
 async function processType(type: string, data: any, hashed_userid: string, timestamp: string) {
   try {
@@ -150,9 +186,20 @@ async function processType(type: string, data: any, hashed_userid: string, times
         )
         if(itemToProccess.core.user_results.result.legacy.protected) {
           DevLog("Interceptor.background.process.home-timeline - Skipping protected account:" + itemToProccess.rest_id)
-          return;
+          return false;
         }
-        
+        const userId = itemToProccess.core.user_results.result.rest_id;
+        console.log("Interceptor.background.process.validateUserMention - JSON:" + itemToProccess.core.user_results.result)
+        const userMention = await isValidUserMentioned(userId);
+        DevLog(`Interceptor.background.process.validateUserMention.${userId}.check`)
+        if(!userMention) {
+          DevLog(`Interceptor.background.process.validateUserMention.${userId}.no`)
+          return false;
+        }
+        else{
+          DevLog(`Interceptor.background.process.validateUserMention.${userId}.yes`)
+        }
+
         processTweet(itemToProccess, hashed_userid,timestamp)
         break;
       
@@ -163,11 +210,12 @@ async function processType(type: string, data: any, hashed_userid: string, times
         processUser(userToProcess)
         break;
     }
-   
+    
   } catch (error) {
-    DevLog(`Interceptor.background.process.${type} - Error processing tweet:${error}`)
+    DevLog(`Interceptor.background.process.error.${type} - Error processing tweet:${error}`)
+    return false;
   }
-  
+  return true;
 }
 
 async function processUser(data: User) {
@@ -226,7 +274,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
     )
     const { data: accountData, error: accountError } = await supabase
       .from("temporary_data")
-      .upsert(objToInsert)
+      .insert(objToInsert)
       .select()
     if (accountError) {
       DevLog(

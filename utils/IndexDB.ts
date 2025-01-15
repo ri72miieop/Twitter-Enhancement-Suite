@@ -1,6 +1,7 @@
 import type { Tweet, User } from '../InterceptorModules/types';
 import type * as Database from '~types/database-explicit-types';
 import Dexie, { type EntityTable, type Transaction } from 'dexie';
+import type { UserID, UserMinimal } from './dbUtils';
 
 
 
@@ -14,6 +15,10 @@ export type TimedObject = {
   
 };
 
+export type TimedUserMention = UserID &{
+  timestamp: string;
+}
+
 
 const indexDB = new Dexie('tes') as Dexie & {
  //tweets: EntityTable<
@@ -25,12 +30,17 @@ const indexDB = new Dexie('tes') as Dexie & {
     TimedObject,
     'item_id' // primary key "id" (for the typings only)
   >;
+  userMentions: EntityTable<
+    TimedUserMention,
+    'id'
+  >;
 
 };
 
 // Schema declaration:
 indexDB.version(1).stores({
   data: 'item_id, originator_id, timestamp',
+  userMentions: 'id,timestamp'
 })
 
 
