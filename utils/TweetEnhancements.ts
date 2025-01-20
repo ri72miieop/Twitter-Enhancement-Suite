@@ -38,7 +38,15 @@ export const TweetEnhancements = {
                 badge.style.fontSize = '12px';
                 badge.style.fontWeight = 'bold';
                 badge.style.marginLeft = '8px';
-                badge.style.display = 'inline-block';
+                badge.style.display = 'inline-flex';  // Changed to inline-flex
+                badge.style.alignItems = 'center';    // Center content vertically
+                badge.style.justifyContent = 'center'; // Center content horizontally
+                badge.style.whiteSpace = 'nowrap';    // Prevent text wrapping
+                badge.style.width = 'fit-content';    // Only as wide as content
+                badge.style.minWidth = 'min-content'; // Minimum width based on content
+                badge.style.maxWidth = 'max-content'; // Maximum width based on content
+                badge.style.height = 'auto';          // Height adjusts to content
+                
                 badge.textContent = badgeText;
                 nameContainer.appendChild(badge);
             }
@@ -373,8 +381,8 @@ export const TweetEnhancements = {
     },
 
     enhanceTweetWithLongTweetText: async (tweetElement: HTMLElement, text: string) => {
-        const tweetTextElement = tweetElement.querySelector('[data-testid="tweetText"]') as HTMLElement; 
-        const tweetTextSpan = tweetElement.querySelector('[data-testid="tweetText"] span');
+        const tweetTextElement = tweetElement.querySelector('[data-testid="tweetText"]:first-of-type') as HTMLElement;
+        const tweetTextSpan = tweetElement.querySelector('[data-testid="tweetText"]:first-of-type span');
         
         if(!tweetTextSpan) return;
         const tweetShowMoreElement = tweetElement.querySelector('[data-testid="tweet-text-show-more-link"]');
