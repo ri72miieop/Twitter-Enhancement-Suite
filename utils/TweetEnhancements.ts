@@ -401,6 +401,41 @@ export const TweetEnhancements = {
             tweetTextSpan.textContent = text;
         }
        
+    },
+
+    enhanceAvatarWithGif: async (tweetElement: HTMLElement) => {
+        const avatarImage = tweetElement.querySelector('img[src*="profile_images"][draggable="true"]') as HTMLImageElement;
+        DevLog("GIF-Found avatarImage", JSON.stringify(avatarImage))
+        
+        if(!avatarImage) return;
+        
+        const gifUrl = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExd3FxZDg1dXQ0ZTl3ZzB0aGZnajZnNjhwczU2M2NrZGk5MHVzYWp3aCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GbUrFXadBryQ8/giphy.gif";
+        avatarImage.src = gifUrl;
+        DevLog("GIF-avatarImage.src", gifUrl)
+
+         // Find parent with background-image
+         avatarImage.parentElement.children[0].style.backgroundImage = `url("${avatarImage.src}")`;
+        //const bgParent = avatarImage.closest('div[style*="background-image"]');
+        //if(bgParent) {
+        //    bgParent.style.backgroundImage = `url("${avatarImage.src}")`;
+        //}
+
+        const observer = new MutationObserver((mutations) => {
+            if(avatarImage.src !== gifUrl) {
+                avatarImage.src = gifUrl;
+            }
+        });
+        
+        // Start observing
+        observer.observe(avatarImage, { attributes: true });
+        
+        // Stop observing after 5 seconds
+        setTimeout(() => {
+            observer.disconnect();
+        }, 5000);
+        
+        DevLog("Modified avatar", avatarImage.src);
+
     }
         
 };
