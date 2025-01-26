@@ -211,8 +211,6 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     })
   }
 
-
-
   //DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
   if(userId && preferences && preferences.obfuscateAllUsers) {
     TweetEnhancements.obfuscateUser(tweetElement)

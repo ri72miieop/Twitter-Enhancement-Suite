@@ -36,7 +36,8 @@ export interface TweetEnhancementPreferences {
   showOriginalPosterBadge: boolean
   enableSignalBoostingUrls: boolean
   blurViralTweets: boolean
-  enhanceLongTweetText: boolean
+  enhanceLongTweetText: boolean,
+  scrapeData: boolean
 }
 export interface PreferenceMetadata {
   preference: keyof TweetEnhancementPreferences;
@@ -51,7 +52,8 @@ export class TweetEnhancementPreferencesManager {
     showOriginalPosterBadge: false,
     enableSignalBoostingUrls: false,
     blurViralTweets: false,
-    enhanceLongTweetText: true
+    enhanceLongTweetText: true,
+    scrapeData: true
   };
 
   static getDefaultPreferences(): TweetEnhancementPreferences {
@@ -94,6 +96,12 @@ export class TweetEnhancementPreferencesManager {
         preference: "enhanceLongTweetText",
         title: "Enhance Tweet with LongTweet Text",
         subtitle: "Stop clicking on 'Show more' to read long tweets, activate this to automatically expand long tweets",
+        isEnabled: true
+      },
+      {
+        preference: "scrapeData",
+        title: "Scrape Data",
+        subtitle: "Scrape data from X api responses and send them to Community Archive. This is useful to keep the archive as up to date as possible.",
         isEnabled: true
       }
     ];
@@ -140,6 +148,10 @@ class CachedData {
     try {
       // Update storage
       await CachedData.storage.set(CachedData.PREFERENCES_KEY, newPreferences);
+      
+
+      // Clear the in-memory cache to force a fresh load
+      delete CachedData.inMemoryCache[CachedData.PREFERENCES_KEY];
       
       // Update in-memory cache
       CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
@@ -251,7 +263,7 @@ class CachedData {
   async GetCanScrape(userid: string): Promise<boolean> {
     const key = CachedData.CAN_SCRAPE_KEY + userid;
     return this.fetchAndCache<boolean>(key, async () => {
-      const {data, error} = await supabase.from("tes_blocked_scraping_users").select("*").eq("account_id", userid)
+      const {data, error} = await supabase.schema("tes").from("blocked_scraping_users").select("*").eq("account_id", userid)
       if(error) throw error
       return data.length==0
     }, 45 * 1000)
@@ -318,7 +330,7 @@ export interface TextModifier{
   to: string
 }
 
-export default CachedData
+//export default CachedData
 
 
 export const GlobalCachedData = new CachedData()

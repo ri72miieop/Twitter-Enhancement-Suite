@@ -50,8 +50,15 @@ async function processTweets() {
 
 
 async function processRecordsIndexDB() {
+
+  //if(!isScrapeDataEnabled) {
+  //  console.log("Interceptor.background.processRecordsIndexDB - Scrape data is disabled, skipping.");
+  //  return;
+  //}
+
+
   const records = await indexDB.data
-    .filter((data) => data.timestamp == null)
+    .filter((data) => data.timestamp == null && data.canSendToCA)
     .toArray()
   DevLog(
     "Interceptor.background.processRecordsIndexDB - FromIndexDB:" +
@@ -73,6 +80,7 @@ async function processRecordsIndexDB() {
     const canScrape = await GlobalCachedData.GetCanScrape(record.user_id)
     DevLog("Interceptor.background.processRecordsIndexDB - canScrape:" + canScrape)
     if(!canScrape) {DevLog("User is blocked from scraping"); continue;}
+    if(!record.canSendToCA) {DevLog("Can't upload record."); continue;}
 
 
 
@@ -94,19 +102,27 @@ async function processRecordsIndexDB() {
 
       
       const shouldUpload = await processType(record.type, record.data,record.user_id,newDate)
-
-
+      DevLog("Interceptor.background.processRecordsIndexDB - shouldUpload:" + shouldUpload)
+      
       if(shouldUpload) {
+        const recordToUpload : TimedObject = {
+          data: record.data,
+          timestamp: newDate,
+          type: record.type,
+          item_id: record.item_id,
+          originator_id: record.originator_id,
+          user_id: record.user_id
+        }
         const { data, error } = await supabase
         .from("temporary_data")
-        .upsert(record)
+        .insert(recordToUpload)
         .select()
-      if (error)
-        DevLog(
-          "Interceptor.background.processRecordsIndexDB_error - " +
-            JSON.stringify(error),
-          "warn"
-        )
+        if (error)
+          DevLog(
+            "Interceptor.background.processRecordsIndexDB_error - " +
+              JSON.stringify(error),
+            "warn"
+          )
       }
 
 
@@ -189,7 +205,7 @@ async function processType(type: string, data: any, hashed_userid: string, times
           return false;
         }
         const userId = itemToProccess.core.user_results.result.rest_id;
-        console.log("Interceptor.background.process.validateUserMention - JSON:" + itemToProccess.core.user_results.result)
+        DevLog("Interceptor.background.process.validateUserMention - JSON:" + JSON.stringify(itemToProccess.core.user_results.result))
         const userMention = await isValidUserMentioned(userId);
         DevLog(`Interceptor.background.process.validateUserMention.${userId}.check`)
         if(!userMention) {
@@ -299,7 +315,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
     )
     const { data: profileData, error: profileError } = await supabase
       .from("temporary_data")
-      .upsert(objToInsert)
+      .insert(objToInsert)
       .select()
     if (profileError) {
       DevLog(
@@ -324,7 +340,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
     )
     const { data: tweetData, error: tweetError } = await supabase
       .from("temporary_data")
-      .upsert(objToInsert)
+      .insert(objToInsert)
       .select()
     if (tweetError) {
       DevLog(
@@ -356,7 +372,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
         )
         const { data: mediaData, error: mediaError } = await supabase
           .from("temporary_data")
-          .upsert(objToInsert)
+          .insert(objToInsert)
           .select()
         if (mediaError) {
           DevLog(
@@ -390,7 +406,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
         )
         const { data: urlData, error: urlError } = await supabase
           .from("temporary_data")
-          .upsert(objToInsert)
+          .insert(objToInsert)
           .select()
         if (urlError) {
           DevLog(
@@ -424,7 +440,7 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
         )
         const { data: mentionData, error: mentionError } = await supabase
           .from("temporary_data")
-          .upsert(objToInsert)
+          .insert(objToInsert)
           .select()
         if (mentionError) {
           DevLog(
@@ -440,44 +456,5 @@ async function processTweet(data: Tweet, hashed_userid: string, timestamp: strin
   DevLog("Interceptor.background.process_json - Completed processing")
 }
 
-//async function processTweetsIndexDB() {
-//
-//  const tweets = await indexDB.tweets.filter(tweet => tweet.timestamp == null).toArray();
-//  DevLog("FromIndexDB:" + await indexDB.tweets.count())
-//  DevLog("FromIndexDB:" + JSON.stringify(tweets))
-//  DevLog("Processing " + tweets.length + " tweets")
-//
-//  for (const tweet of tweets) {
-//    try {
-//      if(tweet.timestamp != null)
-//        continue;
-//      // For now, processing is just logging the tweet
-//      const itemToInsert = TwitterDataMapper.mapTweet(tweet, null);
-//      DevLog("Processing tweet:" + itemToInsert.tweet_id)
-//
-//
-//
-//
-//      const {data,error} = await supabase.from("import_tweets").upsert(itemToInsert).select()
-//      if(error)
-//        DevLog(JSON.stringify(error))
-//
-//      //await indexDB.tweets.put({ ... tweet}, tweet.rest_id);
-//      await indexDB.tweets.update(tweet.rest_id,{timestamp: new Date().getTime()})
-//      // Mark the tweet as saved after processing
-//      //await tweetStorage.markAsSaved(tweet.id)
-//      DevLog("Tweet saved:" + itemToInsert.tweet_id)
-//    } catch (error) {
-//      DevLog("Error processing tweet:" + error)
-//    }
-//  }
-//}
-//
-//
-
-// Run processTweets every 10 minutes
-//setInterval(processTweets, 1 * 35 * 1000)
 const interval = parseInt(process.env.BACKGROUND_PROCESS_UPLOAD_DATA_INTERVAL_MS || "60000")
 setInterval(processRecordsIndexDB, interval);
-// Initial run
-//processTweets()

@@ -23,7 +23,6 @@ export const config: PlasmoCSConfig = {
 
 // content.ts
 const injectInterceptor = () => {
-  console.log("injected script was called from testIntercept.ts")
   // Only run if we're in the top window
   const interceptDataKey = "__interceptedData"
   if (window && window.self && window.self === window.top) {
@@ -45,7 +44,7 @@ const injectInterceptor = () => {
         SearchTimelineInterceptor
       ]
       if(isDev) {
-        Interceptors.push(EndpointsInterceptor)
+        //Interceptors.push(EndpointsInterceptor)
       }
       
 

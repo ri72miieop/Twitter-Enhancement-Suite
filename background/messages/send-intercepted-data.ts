@@ -34,7 +34,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
        //if(!functionToCall) throw new Error(`No function to call for type: ${type}`)
         
        DevLog("Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:", req.body.originator_id)
-       await processInterceptedData(req.body.data, type, req.body.originator_id,req.body.item_id, req.body.userid);
+       await processInterceptedData(req.body.data, type, req.body.originator_id,req.body.item_id, req.body.userid,req.body.canSendToCA);
        //await functionToCall(req.body.data, type, user);
        
      res.send({ success: true });
@@ -47,7 +47,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
 
 
-async function processInterceptedData(data:string, type: string, originator_id: string, item_id: string, userid: string){
+async function processInterceptedData(data:string, type: string, originator_id: string, item_id: string, userid: string, canSendToCA: boolean){
 
   DevLog("got data",originator_id)
 
@@ -80,35 +80,15 @@ async function processInterceptedData(data:string, type: string, originator_id: 
     DevLog(`Interceptor.background.message.expiry - send-intercepted-data: new record is less than ${expirySeconds} seconds old on DB, skipping record: ${originator_id}`)
     return;
   }
-  indexDB.data.put( {timestamp: null, type: type, originator_id: originator_id, item_id: item_id, data: data, user_id: userid});
+
+  
+
+  DevLog("Interceptor.background.message.send-intercepted-data - canSendToCA:" + canSendToCA)
+
+  indexDB.data.put( {timestamp: null, type: type, originator_id: originator_id, item_id: item_id, data: data, user_id: userid, canSendToCA: canSendToCA});
 
   DevLog("data saved to IndexDB from RELAY:" + originator_id)
 }
-
-
-//async function processInterceptedTweet(tweet: Tweet, type: string, user: UserMinimal){
-//
-//  DevLog("got tweet",tweet.rest_id)
-//  indexDB.tweets.put( {timestamp: null, ...tweet}, tweet.rest_id);
-//
-//      DevLog("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
-//}
-//
-//async function processInterceptedBookmarks(tweet: Tweet, type: string, user: UserMinimal){
-//
-//  DevLog("got tweet",tweet.rest_id)
-//  indexDB.bookmarks.put( {timestamp: null, ...tweet, user_id: user.id}, tweet.rest_id);
-//
-//      DevLog("tweet saved to IndexDB from RELAY:" + tweet.rest_id)
-//}
-//
-//async function processInterceptedFollowing(user: User, type: string, userMinimal : UserMinimal){
-//  DevLog("got user",user.rest_id)
-//  indexDB.users.put( {timestamp: null, ...user}, user.rest_id);
-//
-//      DevLog("user saved to IndexDB from RELAY:" + user.rest_id)
-//}
-
 
 
 export default handler

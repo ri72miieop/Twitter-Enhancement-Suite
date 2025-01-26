@@ -14,9 +14,13 @@ import {  ContextMenu,
 
     import "~prod.css"
     import { Avatar, AvatarFallback, AvatarImage } from "~components/ui/shadcn/Avatar"
+import { useEffect } from "react";
+import { useState } from "react";
+import { supabase } from "~core/supabase";
 
     
 function ShadCN() {
+
     return(<>
     <ContextMenu>
       <ContextMenuTrigger className="flex h-[150px] w-[300px] items-center justify-center rounded-md border border-dashed text-sm">
@@ -69,8 +73,7 @@ function ShadCN() {
   <AvatarImage src="https://github.com/shadcn.png" />
   <AvatarFallback>CN</AvatarFallback>
 </Avatar>
-
-comm
+            
     </>
   )
 }

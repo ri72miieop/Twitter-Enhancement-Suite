@@ -22,21 +22,19 @@ async function init() {
       const user: UserMinimal = await getUser()
       //if(!user) throw new Error("User not found")
       const userid = user?.id || "anon"
-      //disable for now
-      const canScrape = false //await GlobalCachedData.GetCanScrape(userid)
-      //res.send({ success: canScrape, userid: userid, canScrape: canScrape });
+      
+      const canScrape = await GlobalCachedData.GetCanScrape(userid)
+      const canSendToCA = (await GlobalCachedData.GetEnhancementPreferences()).scrapeData;
+      
       if (!canScrape) {
         DevLog("User is blocked from scraping")
       } else {
-        // Now we can safely use extension APIs
-        DevLog(
-          "Interceptor.extension.event - dataInterceptedEvent event received"
-        )
+        
         let data = event.detail.data
         let type = event.detail.type
         try {
-          //while (data.length > 0) {
-          const dataObject = data //.shift()
+        
+          const dataObject = data 
 
           const response = await sendToBackground({
             name: "send-intercepted-data",
@@ -46,10 +44,10 @@ async function init() {
               originator_id: event.detail.originator_id,
               item_id: event.detail.item_id,
               timestamp: dataObject.timestamp,
-              userid: userid
+              userid: userid,
+              canSendToCA: canSendToCA
             }
           })
-          // }
         } catch (error) {
           console.error(
             "Interceptor.extension.event - Error sending data to background:",

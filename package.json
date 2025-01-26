@@ -16,6 +16,8 @@
     "build:firefox": "plasmo build --target=firefox-mv2",
     "build:brave": "plasmo build --target=brave-mv3",
     "prod:build": "plasmo build --tag=prod --env=.env.production --zip",
+    "prod:build": "plasmo build --tag=prod --env=.env.production ",
+    "prod:buildzip": "plasmo build --tag=prod --env=.env.production --zip",
     "prod:build2": "plasmo build --tag=prod2 --env=.env.production --zip --hoist --no-minify"
   },
   "dependencies": {

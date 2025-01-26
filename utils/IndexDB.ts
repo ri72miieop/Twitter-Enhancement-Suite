@@ -12,8 +12,11 @@ export type TimedObject = {
   originator_id: string;
   data:any
   user_id: string;
-  
 };
+
+export type TimedObjectWithCanSendToCA = TimedObject & {
+  canSendToCA: boolean;
+}
 
 export type TimedUserMention = UserID &{
   timestamp: string;
@@ -27,7 +30,7 @@ const indexDB = new Dexie('tes') as Dexie & {
  //>;
 
   data: EntityTable<
-    TimedObject,
+    TimedObjectWithCanSendToCA,
     'item_id' // primary key "id" (for the typings only)
   >;
   userMentions: EntityTable<
@@ -39,7 +42,7 @@ const indexDB = new Dexie('tes') as Dexie & {
 
 // Schema declaration:
 indexDB.version(1).stores({
-  data: 'item_id, originator_id, timestamp',
+  data: 'item_id, originator_id, timestamp, canSendToCA',
   userMentions: 'id,timestamp'
 })
 
