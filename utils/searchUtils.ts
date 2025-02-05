@@ -59,5 +59,7 @@ export function buildSupabaseQuery(terms: { [key: string]: string }) {
     params.from_likes = terms.from_likes.toLowerCase() === "true" || terms.from_likes === "1" || terms.from_likes === "yes"
   }
 
+  params.limit_= 30;
+
   return params;
 }
