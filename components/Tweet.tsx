@@ -3,6 +3,7 @@ import { Fragment } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/shadcn/Avatar"
 
 function Tweet({ tweet }) {
+  tweet.username = tweet.username ?? "";
   return (
     <div
       key={tweet.tweet_id}
