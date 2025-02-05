@@ -55,8 +55,37 @@ export class TwitterDataMapper {
 
         if (legacy.is_quote_status && tweetData.quoted_status_result?.result) {
             let quotedTweetData = extractTweetUnion(tweetData.quoted_status_result.result);
-            if(quotedTweetData)
-                res.push(...this.mapAll(quotedTweetData)); //this.mapTweet(quotedTweetData);
+            if(quotedTweetData) {
+              const {account: QT_account, profile: QT_profile, tweet: QT_tweet, media: QT_media, urls: QT_urls, mentions: QT_mentions} = this.mapAll(quotedTweetData)[0];
+              
+              // Create a new object, checking against all existing entries
+              const quotedTweetEntry = {
+                  // Include account if it's not duplicated in any existing entry
+                  ...((!res.some(entry => JSON.stringify(entry.account) === JSON.stringify(QT_account))) && 
+                      { account: QT_account }),
+                  
+                  // Include profile if it's not duplicated in any existing entry
+                  ...((!res.some(entry => JSON.stringify(entry.profile) === JSON.stringify(QT_profile))) && 
+                      { profile: QT_profile }),
+                  
+                  // Always include the tweet
+                  tweet: QT_tweet,
+                  
+                  // Include media if it exists and is not duplicated
+                  ...(QT_media && !res.some(entry => JSON.stringify(entry.media) === JSON.stringify(QT_media)) && 
+                      { media: QT_media }),
+                  
+                  // Include URLs if they exist and are not duplicated
+                  ...(QT_urls && !res.some(entry => JSON.stringify(entry.urls) === JSON.stringify(QT_urls)) && 
+                      { urls: QT_urls }),
+                  
+                  // Include mentions if they exist and are not duplicated
+                  ...(QT_mentions && !res.some(entry => JSON.stringify(entry.mentions) === JSON.stringify(QT_mentions)) && 
+                      { mentions: QT_mentions })
+              };
+              res.push(quotedTweetEntry);
+              
+          }
         }
         return res
       }
