@@ -10,7 +10,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   DevLog( "Interceptor.background.message - get-intercepted-tweet: Received intercepted data:", req.body )
 
   try {
-    DevLog("Interceptor.background.message - get-intercepted-tweet: Sending intercepted data to IndexDB:", req.body.originator_id)
+    DevLog(`Interceptor.background.${req.body.originator_id} - get-intercepted-tweet: Sending intercepted data to IndexDB:`, req.body.originator_id)
     
     const existingRecords = (
       await indexDB.data
@@ -18,7 +18,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         .sortBy("timestamp")
     ).reverse()
 
-    DevLog("Interceptor.background.message - get-intercepted-tweet: Existing records:",JSON.stringify(existingRecords))
+    DevLog(`Interceptor.background.message.${req.body.originator_id} - get-intercepted-tweet: Existing records:`,JSON.stringify(existingRecords))
 
     const tweetRecord = existingRecords[0]
 
@@ -27,7 +27,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
     res.send({ success: true, tweet: tweet })
   } catch (error) {
-    DevLog(`Error getting tweet ${tweet_id}: ${error.message}`, "error")
+    DevLog(`Interceptor.background.message.${req.body.originator_id} - Error getting tweet ${tweet_id}: ${error.message}`, "error")
     res.send({ success: false, error: error.message })
   }
 }
