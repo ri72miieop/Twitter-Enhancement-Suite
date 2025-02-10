@@ -13,6 +13,7 @@ import { DevLog, isDev } from "~utils/devUtils"
 import TweetEnhancementConfigTab from "~tabs/TweetEnhancementConfigTab"
 import ShadCN from "~tabs/ShadCN"
 import SignalBoostedTweets, { SignalBoostedTweetsTab } from "~tabs/SignalBoostedTweetsTab"
+import RealTimeTab from "~tabs/RealTimeTab"
 
 
 
@@ -80,6 +81,13 @@ const navOptions = [
     label: "Tweet Enhancement",
     description: "Configure tweet enhancement features.",
     component: TweetEnhancementConfigTab
+  },
+  {
+    key: "realTime",
+    isEnabled: isDev,
+    label: "Real Time",
+    description: "See tweets as they are posted.",
+    component: RealTimeTab
   }
 ]
 
