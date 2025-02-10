@@ -36,3 +36,10 @@ The easiest way to deploy your Plasmo extension is to use the built-in [bpp](htt
 # interesting libraries that might be useful
 
 https://github.com/marceljuenemann/rxdb-supabase - for db sync with supabase
+
+
+
+https://cosmograph.app/ graph visualization
+
+
+https://github.com/novuhq/novu - notification 
