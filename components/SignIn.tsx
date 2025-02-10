@@ -187,8 +187,8 @@ const SignIn = () => {
 
   if (user) {
     return (
-      <div className="flex justify-center items-start min-h-screen bg-gray-50">
-        <div className="w-[460px] mx-8 my-6">
+      <div className="flex justify-center items-start min-h-fit bg-gray-50">
+        <div className="w-[460px] mx-8 my-6 h-[500px]">
           <div className="bg-white rounded-lg shadow-md p-8">
             <div className="space-y-4">
               <div>
@@ -221,7 +221,7 @@ const SignIn = () => {
   }
 
   return (
-    <div className="flex justify-center items-start min-h-screen bg-gray-50">
+    <div className="flex justify-center items-start min-h-fit bg-gray-50">
       <div className="w-[460px] mx-8 my-6">
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="space-y-6">
