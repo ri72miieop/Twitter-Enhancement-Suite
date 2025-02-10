@@ -21,23 +21,24 @@ function SearchTab() {
         const terms = parseQuery(search)
         const params = buildSupabaseQuery(terms)
         
-        let rpcFunction = "tes_search_tweets";
+        let rpcFunction = "search_tweets";
         if(params.from_likes) {
-          if(!signedInUser) {
-            setSignedInUser(getSignedInUser())
-          }
+         //if(!signedInUser|| !signedInUser.id) {
+         //  setSignedInUser(await getSignedInUser())
+         //}
           
-          if(signedInUser) {
-            params.auth_account_id = signedInUser.id;
-            DevLog("signedInUser " + signedInUser.id, "debug")
-          }
+          //if(signedInUser) {
+          //  DevLog("signedInUser " + JSON.stringify(signedInUser, null, 2), "debug")
+          //  params.auth_account_id = signedInUser.id;
+          //  DevLog("signedInUser " + signedInUser.id, "debug")
+          //}
           delete params.from_likes;
-          rpcFunction = "tes_search_liked_tweets";
+          rpcFunction = "search_liked_tweets";
         }
         
         setData([])
         if(errorMsg) setErrorMsg(null)
-        const { data, error } = await supabase.rpc(rpcFunction, params)
+        const { data, error } = await supabase.schema("tes").rpc(rpcFunction, params)
 
         if (error) {
           console.error(JSON.stringify(error, null, 2))
