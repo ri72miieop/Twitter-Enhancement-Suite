@@ -17,6 +17,7 @@ import {  ContextMenu,
 import { useEffect } from "react";
 import { useState } from "react";
 import { supabase } from "~core/supabase";
+import UnifiedDiffViewer from "~components/DiffViewer";
 
     
 function ShadCN() {
@@ -73,7 +74,7 @@ function ShadCN() {
   <AvatarImage src="https://github.com/shadcn.png" />
   <AvatarFallback>CN</AvatarFallback>
 </Avatar>
-            
+            <UnifiedDiffViewer />
     </>
   )
 }
