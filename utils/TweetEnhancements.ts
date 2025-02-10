@@ -436,6 +436,26 @@ export const TweetEnhancements = {
         
         DevLog("Modified avatar", avatarImage.src);
 
+    },
+
+    removeHighEngagementTweet: (element: HTMLElement) => {
+        // Remove blur effect
+        element.style.filter = '';
+        // Remove any added classes or elements
+        element.classList.remove('high-engagement-tweet');
+    },
+
+    removeOriginalPoster: (element: HTMLElement) => {
+        // Remove the OP badge if it exists
+        const badge = element.querySelector('.op-badge');
+        if (badge) {
+            badge.remove();
+        }
+    },
+
+    removeRelationshipBadges: (element: HTMLElement) => {
+        // Remove any relationship badges
+        const badges = element.querySelectorAll('.relationship-badge');
+        badges.forEach(badge => badge.remove());
     }
-        
 };
