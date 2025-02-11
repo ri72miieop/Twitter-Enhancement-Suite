@@ -10,6 +10,7 @@ import type { UserMinimal } from "~utils/dbUtils"
 import { getUser } from "~utils/dbUtils"
 import { DevLog, PLASMO_PUBLIC_RECORD_EXPIRY_SECONDS } from "~utils/devUtils"
 import { indexDB, type TimedObject } from "~utils/IndexDB"
+import { getPreferenceValue } from "./preference-changed"
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   const type = req.body.type
@@ -33,8 +34,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       type,
       req.body.originator_id,
       req.body.item_id,
-      req.body.userid,
-      req.body.canSendToCA
+      req.body.userid
     )
     //await functionToCall(req.body.data, type, user);
 
@@ -50,11 +50,10 @@ async function processInterceptedData(
   type: string,
   originator_id: string,
   item_id: string,
-  userid: string,
-  canSendToCA: boolean
+  userid: string
 ) {
   DevLog("Processing intercepted data", originator_id)
-
+  
   // Check for duplicates
   const existingRecords = await indexDB.data
     .filter(
@@ -68,6 +67,23 @@ async function processInterceptedData(
   // Check DB for recent records
   const expirySeconds = PLASMO_PUBLIC_RECORD_EXPIRY_SECONDS
   const expiryTime = Date.now() - expirySeconds * 1000
+
+  // Get fresh preference value instead of using cached version
+  const canScrape = await GlobalCachedData.GetCanScrape(userid);
+  const userpreferences = await GlobalCachedData.GetEnhancementPreferences();
+  const canSendToCA = userpreferences.scrapeData;
+  
+  const recordId = await indexDB.data.put({
+    timestamp: null,
+    type: `api_${type}`,
+    originator_id,
+    item_id,
+    data,
+    user_id: userid,
+    canSendToCA: canScrape && canSendToCA,
+    date_added: new Date().toISOString()
+  })
+
 
   const { data: dbData } = await supabase
     .from("temporary_data")
@@ -85,25 +101,27 @@ async function processInterceptedData(
     new Date(dbData[0].timestamp).getTime() > expiryTime
   ) {
     DevLog(`Record is too recent in DB, skipping: ${originator_id}`)
+    await indexDB.data.update(recordId, {
+      canSendToCA: false,
+      reason: "Record is too recent in DB"
+    })
     return
   }
 
-  // Process only if user can scrape
-  const canScrape = await GlobalCachedData.GetCanScrape(userid)
+
+  
+  
   if (!canScrape || !canSendToCA) {
     DevLog("User blocked from scraping or cannot send to CA")
+    DevLog("user preferences: " + JSON.stringify(userpreferences) + " canSendToCA " + canSendToCA + " canScrape " + canScrape)
+    await indexDB.data.update(recordId, {
+      canSendToCA: false,
+      reason: canScrape ? "User has disabled sending this data to CA" : "User blocked from scraping"
+    })
+
     return
   }
 
-  const recordId = await indexDB.data.put({
-    timestamp: null,
-    type,
-    originator_id,
-    item_id,
-    data,
-    user_id: userid,
-    canSendToCA
-  })
 
   // Create record with current timestamp
   const timestamp = new Date().toISOString()
@@ -117,11 +135,13 @@ async function processInterceptedData(
   }
 
   try {
-    const shouldUpload = await processType(
+    const processResult = await processType(
       recordToProcess.type,
       recordToProcess.data,
       recordToProcess.user_id
     )
+
+    const shouldUpload = processResult.success;
     DevLog(
       "Interceptor.background.processRecordsIndexDB - shouldUpload:" +
         shouldUpload
@@ -138,14 +158,18 @@ async function processInterceptedData(
         DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
         throw error
       }
+      // Update IndexDB with processed timestamp
+      await indexDB.data.update(recordId, { timestamp })
+      
+    }else{
+      await indexDB.data.update(recordId, { canSendToCA: false, reason: processResult.reason })
     }
   } catch (error) {
     DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
+    await indexDB.data.update(recordId, { canSendToCA: false, reason: "Error uploading to Supabase" })
     throw error
   }
-
-  // Update IndexDB with processed timestamp
-  await indexDB.data.update(recordId, { timestamp })
+  
 
   DevLog(`Successfully processed data for: ${originator_id}`)
 }
@@ -214,7 +238,7 @@ async function processType(type: string, data: any, hashed_userid: string) {
             "Interceptor.background.process.home-timeline - Skipping protected account:" +
               itemToProccess.rest_id
           )
-          return false
+          return {success: false, reason: "Protected account"}
         }
         const userId = itemToProccess.core.user_results.result.rest_id
         DevLog(
@@ -229,29 +253,40 @@ async function processType(type: string, data: any, hashed_userid: string) {
           DevLog(
             `Interceptor.background.process.validateUserMention.${userId}.no`
           )
-          return false
+          return {success: false, reason: "[Current Data Policy] User has not been mentioned in the CA."}
         } else {
           DevLog(
             `Interceptor.background.process.validateUserMention.${userId}.yes`
           )
         }
 
-        processTweet(itemToProccess, hashed_userid)
+
+        await processTweet(itemToProccess, hashed_userid)
         break
 
       case "api_following":
       case "api_followers":
         const userToProcess = data as User
-        processUser(userToProcess)
+        await processUser(userToProcess)
         break
     }
   } catch (error) {
     DevLog(
       `Interceptor.background.process.error.${type} - Error processing tweet:${error}`
     )
-    return false
+    let errorCode = `${Date.now()}_${hashed_userid}`
+    posthog.capture("process_type_error", {
+      error: error.message,
+      errorCode,
+      type,
+      userid: hashed_userid,
+      data: JSON.stringify(data)
+    })
+    return {success: false, reason: "Error processing tweet."}
+
   }
-  return true
+  return {success: true}
+
 }
 
 async function processUser(data: User) {

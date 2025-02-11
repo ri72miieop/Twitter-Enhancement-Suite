@@ -25,11 +25,13 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     const items = TwitterDataMapper.mapAll(tweetRecord.data)
     const tweet = items[0].tweet
 
-    res.send({ success: true, tweet: tweet })
+    res.send({ success: true, tweet: tweet, date_added: tweetRecord.date_added, date_sent: tweetRecord.timestamp, reason: tweetRecord.reason, canSendToCA: tweetRecord.canSendToCA})
   } catch (error) {
+
     DevLog(`Interceptor.background.message.${req.body.originator_id} - Error getting tweet ${tweet_id}: ${error.message}`, "error")
     res.send({ success: false, error: error.message })
   }
+
 }
 
 export default handler
