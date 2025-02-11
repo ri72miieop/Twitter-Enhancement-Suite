@@ -17,7 +17,10 @@
     "build:brave": "plasmo build --target=brave-mv3",
     "prod:build": "plasmo build --tag=prod --env=.env.production ",
     "prod:buildzip": "plasmo build --tag=prod --env=.env.production --zip",
-    "prod:build2": "plasmo build --tag=prod2 --env=.env.production --zip --hoist --no-minify"
+    "prod:build2": "plasmo build --tag=prod2 --env=.env.production --zip --hoist --no-minify",
+    "clean": "if exist .plasmo rd /s /q .plasmo && if exist .parcel-cache rd /s /q .parcel-cache && if exist node_modules rd /s /q node_modules && pnpm install",
+    "dev:clean": "pnpm clean && pnpm dev",
+    "dev:debug": "plasmo dev --entry=options --env=.env.development --verbose --debug --no-optimize"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
@@ -43,7 +46,7 @@
     "dexie-export-import": "^4.1.4",
     "dexie-react-hooks": "^1.1.7",
     "lucide-react": "^0.453.0",
-    "plasmo": "0.90.1",
+    "plasmo": "0.90.2",
     "posthog-js": "^1.184.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -54,7 +57,7 @@
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.1.1",
-    "@parcel/diagnostic": "^2.13.3",
+    "@parcel/diagnostic": "^2.9.3",
     "@types/chrome": "0.0.258",
     "@types/node": "20.11.5",
     "@types/react": "18.2.48",
