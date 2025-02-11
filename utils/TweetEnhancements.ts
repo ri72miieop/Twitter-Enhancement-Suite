@@ -2,13 +2,15 @@ import React, { type SVGAttributes } from 'react';
 import { generateAnonymousId, generateAvatarSVG } from './ObfuscationUtils';
 import { DevLog } from './devUtils';
 import { GlobalCachedData } from '~contents/Storage/CachedData';
+import { detectTwitterTheme, useTwitterTheme } from '~hooks/TwitterTheme';
 
 export const TweetEnhancements = {
     enhanceTweet: async (tweetElement, badgeText,backgroundColor, gradientBackgroundColor, hoverGradientBackgroundColor) => {
+        
         try {
             // Find the avatar and username elements
             const avatarContainer = tweetElement.querySelector('[data-testid="Tweet-User-Avatar"]');
-            const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] a[role="link"]');
+            const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"]');
             
             if (!avatarContainer || !usernameElement) return;
 
@@ -27,7 +29,7 @@ export const TweetEnhancements = {
             }
 
             // 2. Add a badge next to the username
-            const nameContainer = usernameElement.parentElement;
+            const nameContainer = usernameElement;
             if (nameContainer && !nameContainer.querySelector('.mutual-badge')) {
                 const badge = document.createElement('span');
                 badge.className = 'mutual-badge';
@@ -114,17 +116,91 @@ export const TweetEnhancements = {
         }
     },
 
-    enhanceMutualTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'MUTUAL', '#FF7A32', 'linear-gradient(45deg, #fff 0%, #ffe6f3 100%)', 'linear-gradient(45deg, #fff 0%, #ffd6ec 100%)');
+     enhanceMutualTweet: async (tweetElement) => {
+        const theme = detectTwitterTheme();
+        const colors = {
+            light: {
+                badge: '#794BC4',  // Rich purple for light theme
+                gradient: 'linear-gradient(45deg, rgba(121, 75, 196, 0.08) 0%, rgba(121, 75, 196, 0.12) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(121, 75, 196, 0.12) 0%, rgba(121, 75, 196, 0.18) 100%)',              
+            },
+            dim: {
+                badge: '#8A5CD6',  // Brighter purple for dim mode
+                gradient: 'linear-gradient(45deg, rgba(138, 92, 214, 0.1) 0%, rgba(138, 92, 214, 0.15) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(138, 92, 214, 0.15) 0%, rgba(138, 92, 214, 0.2) 100%)',
+            },
+            dark: {
+                badge: '#9B6DEB',  // Brightest purple for dark theme
+                gradient: 'linear-gradient(45deg, rgba(155, 109, 235, 0.15) 0%, rgba(155, 109, 235, 0.2) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(155, 109, 235, 0.2) 0%, rgba(155, 109, 235, 0.25) 100%)'
+            }
+        };
+        return TweetEnhancements.enhanceTweet(
+            tweetElement, 
+            'MUTUAL'+theme, 
+            colors[theme].badge,
+            colors[theme].gradient,
+            colors[theme].hoverGradient
+        );
     },
 
     enhanceFollowerTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWER','#2ED5E8', 'linear-gradient(45deg, #e0f7fa 0%, #b2ebf2 100%)', 'linear-gradient(45deg, #e0f7fa 0%, #80deea 100%)');
+        const theme = detectTwitterTheme();
+        const colors = {
+            
+    light: {
+        badge: '#00BA7C',  // Softer green for light theme
+        gradient: 'linear-gradient(45deg, rgba(0, 186, 124, 0.08) 0%, rgba(0, 186, 124, 0.12) 100%)',
+        hoverGradient: 'linear-gradient(45deg, rgba(0, 186, 124, 0.12) 0%, rgba(0, 186, 124, 0.18) 100%)',              
+    },
+    dim: {
+        badge: '#00CC88',  // Brighter green for better visibility
+        gradient: 'linear-gradient(45deg, rgba(0, 204, 136, 0.1) 0%, rgba(0, 204, 136, 0.15) 100%)',
+        hoverGradient: 'linear-gradient(45deg, rgba(0, 204, 136, 0.15) 0%, rgba(0, 204, 136, 0.2) 100%)',
+    },
+    dark: {
+        badge: '#00D68F',  // Brightest green for dark theme
+        gradient: 'linear-gradient(45deg, rgba(0, 214, 143, 0.15) 0%, rgba(0, 214, 143, 0.2) 100%)',
+        hoverGradient: 'linear-gradient(45deg, rgba(0, 214, 143, 0.2) 0%, rgba(0, 214, 143, 0.25) 100%)'
+    }
+        };
+        return TweetEnhancements.enhanceTweet(
+            tweetElement, 
+            'FOLLOWER'+theme,
+            colors[theme].badge,
+            colors[theme].gradient,
+            colors[theme].hoverGradient
+        );
     },
 
     enhanceFollowingTweet: async (tweetElement) => {
-        return TweetEnhancements.enhanceTweet(tweetElement, 'FOLLOWING','#92FF32', 'linear-gradient(45deg, #ffe0b2 0%, #ffcc80 100%)', 'linear-gradient(45deg, #ffe0b2 0%, #ffb74d 100%)');
+        const theme = detectTwitterTheme();
+        const colors = {
+            light: {
+                badge: '#1D9BF0',  // Twitter blue, vibrant on light
+                gradient: 'linear-gradient(45deg, rgba(29, 155, 240, 0.08) 0%, rgba(29, 155, 240, 0.12) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(29, 155, 240, 0.12) 0%, rgba(29, 155, 240, 0.18) 100%)',              
+            },
+            dim: {
+                badge: '#1DA1F2',  // Slightly brighter blue
+                gradient: 'linear-gradient(45deg, rgba(29, 161, 242, 0.1) 0%, rgba(29, 161, 242, 0.15) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(29, 161, 242, 0.15) 0%, rgba(29, 161, 242, 0.2) 100%)',
+            },
+            dark: {
+                badge: '#1D9BF0',
+                gradient: 'linear-gradient(45deg, rgba(29, 155, 240, 0.15) 0%, rgba(29, 155, 240, 0.2) 100%)',
+                hoverGradient: 'linear-gradient(45deg, rgba(29, 155, 240, 0.2) 0%, rgba(29, 155, 240, 0.25) 100%)'
+            }
+        };
+        return TweetEnhancements.enhanceTweet(
+            tweetElement, 
+            'FOLLOWING'+theme,
+            colors[theme].badge,
+            colors[theme].gradient,
+            colors[theme].hoverGradient
+        );
     },
+
 
     obfuscateUser: async (tweetElement: HTMLElement) => {
         try {
