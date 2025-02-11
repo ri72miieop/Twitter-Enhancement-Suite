@@ -75,7 +75,10 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const parentElement = anchor.element.parentElement
   const tweetElement = parentElement.querySelector("article")
   const tweetData = scrapeTweet(tweetElement)
-  const openXUsername = extractXUsername(window.location.href)
+  const currentUrl = window.location.href
+
+  const isSpecificTweetPage = currentUrl.includes("/status/");
+  const openXUsername = extractXUsername(currentUrl)
 
   //DevLog("XTweet " + tweetData.id + " " + tweetData.author.handle)
 
@@ -86,7 +89,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   })
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [userId, setUserId] = useState("")
-  const [interceptedTweet, setInterceptedTweet] = useState<InsertTweets | null>(null)
+  const [interceptedTweet, setInterceptedTweet] = useState<any>(null)
 
   //tweetStorage.addTweet(tweetData);
 
@@ -103,23 +106,35 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   //MarkAsStored(tweetElement)
   if (isDev  && false) {
     useEffect(() => {
-      if (!isDev) return
+      
 
       const interval = setInterval(() => {
+        return;
+        if(!preferences.enhanceLongTweetText) return;
+        const insertedDate = interceptedTweet.timestamp;
+        const processedDate = interceptedTweet.date_added;
+        const reason = interceptedTweet.reason;
+        const canSendToCA = interceptedTweet.canSendToCA;
+
+
         tweetStorage.GetStatus(tweetData.id).then((status) => {
-          if (status === "INSERTED") {
+          //inserted
+          if ( insertedDate &&processedDate) {
             ChangeBackgroundColor(tweetElement, "green")
-          } else if (status === "SAVED") {
+          } 
+          //saved on local db
+          else if (!insertedDate && processedDate) {
             ChangeBackgroundColor(tweetElement, "yellow")
-          } else if (status === "NOT_SAVED") {
+          }
+          else if (!insertedDate && !processedDate) {
             ChangeBackgroundColor(tweetElement, "red")
           }
         })
-      }, 1000)
+      }, 2000)
 
       // Cleanup interval on component unmount
       return () => clearInterval(interval)
-    }, [tweetData.id, tweetElement])
+    }, [preferences, interceptedTweet])
   }
 
   useEffect(() => {
@@ -135,14 +150,17 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     })
 
     console.log("GOT RESPONSE",JSON.stringify(response), "for tweet", tweetData.id)
-    setInterceptedTweet(response.tweet)
+    setInterceptedTweet(response)
     })
   },[])
 
-  if(preferences && preferences.enhanceLongTweetText && interceptedTweet && interceptedTweet.full_text && interceptedTweet.full_text.length > 280){ // && interceptedTweet.full_text.length < 2000) {
-    DevLog("Enhancing tweet id", interceptedTweet.tweet_id, "with text", interceptedTweet.full_text)
-    TweetEnhancements.enhanceTweetWithLongTweetText(tweetElement, interceptedTweet.full_text)
+  if(preferences && preferences.enhanceLongTweetText && interceptedTweet && interceptedTweet.tweet && interceptedTweet.tweet.full_text && interceptedTweet.tweet.full_text.length > 280
+    && isSpecificTweetPage
+  ){ // && interceptedTweet.full_text.length < 2000) {
+    DevLog("Enhancing tweet id", interceptedTweet.tweet_id, "with text", interceptedTweet.tweet.full_text)
+    TweetEnhancements.enhanceTweetWithLongTweetText(tweetElement, interceptedTweet.tweet.full_text)
   }
+
 
 
   useEffect(() => {
