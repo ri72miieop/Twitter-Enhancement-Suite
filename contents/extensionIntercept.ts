@@ -22,38 +22,28 @@ async function init() {
       const user: UserMinimal = await getUser()
       //if(!user) throw new Error("User not found")
       const userid = user?.id || "anon"
-      
-      const canScrape = await GlobalCachedData.GetCanScrape(userid)
-      const canSendToCA = (await GlobalCachedData.GetEnhancementPreferences()).scrapeData;
-      
-      if (!canScrape) {
-        DevLog("User is blocked from scraping")
-      } else {
-        
-        let data = event.detail.data
-        let type = event.detail.type
-        try {
-        
-          const dataObject = data 
 
-          const response = await sendToBackground({
-            name: "send-intercepted-data",
-            body: {
-              data: dataObject,
-              type: type,
-              originator_id: event.detail.originator_id,
-              item_id: event.detail.item_id,
-              timestamp: dataObject.timestamp,
-              userid: userid,
-              canSendToCA: canSendToCA
-            }
-          })
-        } catch (error) {
-          console.error(
-            "Interceptor.extension.event - Error sending data to background:",
-            error
-          )
-        }
+      let data = event.detail.data
+      let type = event.detail.type
+      try {
+        const dataObject = data
+
+        const response = await sendToBackground({
+          name: "send-intercepted-data",
+          body: {
+            data: dataObject,
+            type: type,
+            originator_id: event.detail.originator_id,
+            item_id: event.detail.item_id,
+            timestamp: dataObject.timestamp,
+            userid: userid
+          }
+        })
+      } catch (error) {
+        console.error(
+          "Interceptor.extension.event - Error sending data to background:",
+          error
+        )
       }
     }
   )
