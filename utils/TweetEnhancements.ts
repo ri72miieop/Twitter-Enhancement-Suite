@@ -106,8 +106,8 @@ export const TweetEnhancements = {
             // Add a special border
             const tweetCard = tweetElement.closest('article');
             if (tweetCard) {
-                tweetCard.style.border = '1px solid gold';
-                tweetCard.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.3)';
+                tweetCard.style.borderLeft = '1px solid gold';
+                //tweetCard.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.3)';
             }
         } catch (error) {
             console.error('Error enhancing original poster tweet:', error);
