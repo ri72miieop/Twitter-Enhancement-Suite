@@ -51,3 +51,12 @@ tweet with hashtag
 
 Community Tweet
     https://x.com/WagieWeeb/status/1874712680101187750
+
+
+thread with several longtweets
+    https://x.com/michael_nielsen/status/1888721635622224136
+    https://x.com/RichDecibels/status/1889006022016000481
+
+
+Tweet with edits
+https://x.com/IaimforGOAT/status/1889827091128172951
