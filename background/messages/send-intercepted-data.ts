@@ -116,7 +116,7 @@ async function processInterceptedData(
     DevLog("user preferences: " + JSON.stringify(userpreferences) + " canSendToCA " + canSendToCA + " canScrape " + canScrape)
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: canScrape ? "User has disabled sending this data to CA" : "User blocked from scraping"
+      reason: canScrape ? "User has disabled sending data to CA" : "User blocked from scraping"
     })
 
     return
