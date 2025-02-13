@@ -118,24 +118,14 @@ class CachedData {
 
   async GetEnhancementPreferences(): Promise<TweetEnhancementPreferences> {
     try {
-      // Check in-memory cache first
-      const cachedPrefs = CachedData.inMemoryCache[CachedData.PREFERENCES_KEY];
-      if (cachedPrefs && cachedPrefs.last_updated >= Date.now() - CachedData.CACHE_EXPIRATION) {
-        return cachedPrefs.data;
-      }
 
-      // If not in memory, get from storage
-      const savedPrefs = await CachedData.storage.get<TweetEnhancementPreferences>(CachedData.PREFERENCES_KEY);
+      const savedPrefs = await CachedData.syncStorage.get<TweetEnhancementPreferences>(CachedData.PREFERENCES_KEY);
       const prefs = Object.keys(defaultPreferences).reduce((acc, key) => ({
         ...acc,
         [key]: savedPrefs?.[key] ?? defaultPreferences[key]
       }), {} as TweetEnhancementPreferences);
 
-      // Update in-memory cache
-      CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
-        data: prefs,
-        last_updated: Date.now()
-      };
+
 
       return prefs;
     } catch (error) {
@@ -147,17 +137,7 @@ class CachedData {
   async SaveEnhancementPreferences(newPreferences: TweetEnhancementPreferences): Promise<void> {
     try {
       // Update storage
-      await CachedData.storage.set(CachedData.PREFERENCES_KEY, newPreferences);
-      
-
-      // Clear the in-memory cache to force a fresh load
-      delete CachedData.inMemoryCache[CachedData.PREFERENCES_KEY];
-      
-      // Update in-memory cache
-      CachedData.inMemoryCache[CachedData.PREFERENCES_KEY] = {
-        data: newPreferences,
-        last_updated: Date.now()
-      };
+      await CachedData.syncStorage.set(CachedData.PREFERENCES_KEY, newPreferences);
 
       DevLog(`Saved enhancement preferences: ${JSON.stringify(newPreferences)}`);
     } catch (error) {
@@ -171,6 +151,9 @@ class CachedData {
   private static storage: Storage = new Storage({
     area: "local"
   })
+  private static syncStorage: Storage = new Storage({
+    area: "sync"
+  })
 
   private static readonly USERDATA_KEY = "userData_"
   private static readonly MOOTS_KEY = "userMoots_"
@@ -180,27 +163,17 @@ class CachedData {
   private static readonly CAN_SCRAPE_KEY = "canScrape"
 
 
-  private static inMemoryCache: { [key: string]: TimedData<any> } = {}; // Use 'any' for generic types
+
 
   // Add a new property to track pending requests
   private static pendingRequests: { [key: string]: Promise<any> } = {};
 
   // Generic fetch and cache method
-  private async fetchAndCache<T>(key: string, fetchFunction: ( ) => Promise<T>, cache_expiration_in_ms:number = CachedData.CACHE_EXPIRATION): Promise<T> {
-    // First check in-memory cache
-    
-    const cachedData = CachedData.inMemoryCache[key];
-    if (cachedData && cachedData.last_updated >= Date.now() - cache_expiration_in_ms) {
-      DevLog(`Cache hit for key: ${key}`);
-      return cachedData.data;
-    }
-
+  private async fetchAndCache<T>(key: string, storage: Storage, fetchFunction: ( ) => Promise<T>, cache_expiration_in_ms:number = CachedData.CACHE_EXPIRATION): Promise<T> {
     
   const storedData = await CachedData.storage.get<TimedData<T>>(key);
   if (storedData && storedData.last_updated >= Date.now() - cache_expiration_in_ms) {
     DevLog(`Storage cache hit for key: ${key}`);
-    // Update in-memory cache with storage data
-    CachedData.inMemoryCache[key] = storedData;
     return storedData.data;
   }
 
@@ -216,8 +189,7 @@ class CachedData {
       try {
         const data = await fetchFunction();
         const res: TimedData<T> = { data, last_updated: Date.now() };
-        await CachedData.storage.set(key, res);
-        CachedData.inMemoryCache[key] = res;
+        await storage.set(key, res);
         return data;
       } finally {
         // Clean up pending request after completion (success or failure)
@@ -230,10 +202,6 @@ class CachedData {
 
   async GetUserData(id:string) : Promise<UserData> {
     const userData = await CachedData.storage.get<TimedData<UserData>>(CachedData.USERDATA_KEY + id)
-
-    if (CachedData.inMemoryCache[CachedData.USERDATA_KEY + id]) {
-      return CachedData.inMemoryCache[CachedData.USERDATA_KEY + id].data;
-    }
 
     if(!userData || userData.last_updated < Date.now() - 1000 * 60 * 60 * 24){
         const {data : acc_data, error} = await supabase.from("account").select("*").eq("account_id", id)
@@ -262,7 +230,7 @@ class CachedData {
 
   async GetCanScrape(userid: string): Promise<boolean> {
     const key = CachedData.CAN_SCRAPE_KEY + userid;
-    return this.fetchAndCache<boolean>(key, async () => {
+    return this.fetchAndCache<boolean>(key, CachedData.storage, async () => {
       const {data, error} = await supabase.schema("tes").from("blocked_scraping_users").select("*").eq("account_id", userid)
       if(error) throw error
       return data.length==0
@@ -271,7 +239,7 @@ class CachedData {
 
   async GetMoots(userid: string): Promise<User[]> {
     const key = CachedData.MOOTS_KEY + userid;
-    return this.fetchAndCache<User[]>(key, async () => {
+    return this.fetchAndCache<User[]>(key, CachedData.storage, async () => {
         const { data, error } = await supabase.schema("tes").rpc("get_moots", { user_id: userid });
         if (error) throw error;
         return data.map(moot => ({ user_id: moot.user_id, username: moot.username }));
@@ -280,7 +248,7 @@ class CachedData {
 
   async GetFollowers(userid : string) :Promise<User[]>{
     const key = CachedData.FOLLOWERS_KEY + userid
-   return this.fetchAndCache<User[]>(key, async () => {
+   return this.fetchAndCache<User[]>(key, CachedData.storage, async () => {
       const {data, error} = await supabase.schema("tes").rpc("get_followers", {user_id: userid})
       if(error) throw error
       return data.map(follower => ({user_id: follower.user_id, username: follower.username}))
@@ -288,7 +256,7 @@ class CachedData {
   }
   async GetFollows(userid : string) :Promise<User[]>{
     const key = CachedData.FOLLOWS_KEY + userid
-    return this.fetchAndCache<User[]>(key, async () => {
+    return this.fetchAndCache<User[]>(key, CachedData.storage, async () => {
       const {data, error} = await supabase.schema("tes").rpc("get_followings", {user_id: userid})
       if(error) throw error
       return data.map(following => ({user_id: following.user_id, username: following.username}))
@@ -297,7 +265,7 @@ class CachedData {
 
   async GetTextModifiers() : Promise<TextModifier[]>{
     const key = CachedData.TEXT_REPLACEMENET_KEY
-    return this.fetchAndCache<TextModifier[]>(key, async () => {
+    return this.fetchAndCache<TextModifier[]>(key, CachedData.storage, async () => {
       const textModifiers = await CachedData.storage.get<TimedData<TextModifier[]>>(CachedData.TEXT_REPLACEMENET_KEY)
       if(!textModifiers) return []
       return textModifiers.data;
@@ -306,10 +274,6 @@ class CachedData {
 
   async SetTextModifiers(modifiers: TextModifier[]){
     await CachedData.storage.set(CachedData.TEXT_REPLACEMENET_KEY, modifiers)
-    CachedData.inMemoryCache[CachedData.TEXT_REPLACEMENET_KEY] = {
-      data: modifiers,
-      last_updated: Date.now()
-    }
   }
 
   private async ResetCacheWithKey(key:string) {
