@@ -129,7 +129,6 @@ function SearchHelpText() {
         - Until date » until:2023-12-31<br />
         - Min retweets » min_retweets:100<br />
         - Min likes » min_faves:500<br />
-        - Language » lang:en
         - Search only on your likes  from_likes:true
       </small>
     </div>
