@@ -393,7 +393,7 @@ async function processTweet(data: Tweet, hashed_userid: string) {
       )
     }
   }
-
+  let batch = null;
   try {
     DevLog(`Attempting to insert ${recordsToInsert.length} records in bulk`)
 
@@ -406,7 +406,7 @@ async function processTweet(data: Tweet, hashed_userid: string) {
 
     // Process in batches
     for (let i = 0; i < recordsToInsert.length; i += BATCH_SIZE) {
-      const batch = recordsToInsert.slice(i, i + BATCH_SIZE).map((record) => ({
+      batch = recordsToInsert.slice(i, i + BATCH_SIZE).map((record) => ({
         ...record,
         timestamp: new Date().toISOString()
       }))
@@ -443,7 +443,7 @@ async function processTweet(data: Tweet, hashed_userid: string) {
         "warn"
       )
       throw new Error(
-        `Failed to insert all records. ${results.errors.length} batches had errors.`
+        `Failed to insert: ${results.errors.length} errors. ${JSON.stringify(results.errors)}`
       )
     } else {
       DevLog(`Successfully inserted all ${results.success} records in bulk`)
@@ -451,6 +451,7 @@ async function processTweet(data: Tweet, hashed_userid: string) {
   } catch (error) {
     posthog.capture("bulk_insert_error", {
       error: error.message,
+      batch: batch,
       timestamp: new Date().toISOString()
     })
     DevLog(`Critical error during bulk insert: ${error.message}`, "error")
