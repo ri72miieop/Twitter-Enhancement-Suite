@@ -16,7 +16,7 @@ import { TweetEnhancements } from "~utils/TweetEnhancements"
 
 import { scrapeTweet } from "./scrapeTweet"
 import { GlobalCachedData, type TweetEnhancementPreferences } from "./Storage/CachedData"
-import TweetStorage from "./Storage/TweetsStorage"
+
 import { DevLog, isDev } from "~utils/devUtils"
 import { sendToBackground } from "@plasmohq/messaging"
 import type { InsertTweets } from "~types/database-explicit-types"; 
@@ -25,9 +25,7 @@ export const getShadowHostId: PlasmoGetShadowHostId = ({ element }) =>
   element.getAttribute("aria-labelledby") + `-xtweets`
 
 //import "~/prod.css"
-
 export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
-  //disable it for now
   const anchors = document.querySelectorAll("article")
   return Array.from(anchors).map((element) => {
     return {
@@ -40,7 +38,6 @@ export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
 export const config: PlasmoCSConfig = {
   matches: ["https://*.x.com/*"],
   all_frames: true
-  
 }
 
 export const getStyle = () => {
@@ -61,16 +58,12 @@ const ChangeBackgroundColor = (element: HTMLElement, color: string) => {
   element.style["background-color"] = color
 }
 
-
 const extractXUsername = (url: string): string | false => {
-  // Check if URL matches pattern x.com/username/status/
   const match = url.match(/x\.com\/([^\/]+)\/status\//);
-  
-  // Return username if found, false otherwise
   return match ? match[1] : false;
 };
 
-const tweetStorage = new TweetStorage()
+
 const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const parentElement = anchor.element.parentElement
   const tweetElement = parentElement.querySelector("article")
@@ -80,28 +73,15 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const isSpecificTweetPage = currentUrl.includes("/status/");
   const openXUsername = extractXUsername(currentUrl)
 
-  //DevLog("XTweet " + tweetData.id + " " + tweetData.author.handle)
-
   const [userRelationshipStatus, setUserRelationshipStatus] = useState({
     isMutual: false,
     isFollowed: false,
     isFollower: false
   })
-  const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
+  //const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [userId, setUserId] = useState("")
   const [interceptedTweet, setInterceptedTweet] = useState<any>(null)
-
-  //tweetStorage.addTweet(tweetData);
-
-
-  useEffect(() => {
-    // Load saved preferences on mount
-    GlobalCachedData.GetEnhancementPreferences().then(savedPrefs => {
-      if (savedPrefs) {
-        setPreferences(savedPrefs)
-      }
-    })
-  }, [])
+  const [preferences] = useStorage("tweetEnhancementPreferences")
 
   //MarkAsStored(tweetElement)
   if (isDev  && false) {
@@ -116,8 +96,8 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
         const reason = interceptedTweet.reason;
         const canSendToCA = interceptedTweet.canSendToCA;
 
+        
 
-        tweetStorage.GetStatus(tweetData.id).then((status) => {
           //inserted
           if ( insertedDate &&processedDate) {
             ChangeBackgroundColor(tweetElement, "green")
@@ -129,43 +109,31 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
           else if (!insertedDate && !processedDate) {
             ChangeBackgroundColor(tweetElement, "red")
           }
-        })
+        
       }, 2000)
 
       // Cleanup interval on component unmount
       return () => clearInterval(interval)
     }, [preferences, interceptedTweet])
   }
+ 
 
+  // Load user and check relationships
   useEffect(() => {
-    
-
-    new Promise(resolve => setTimeout(resolve, 2000))
-    .then(async () => {
-    const response = await sendToBackground({
-      name: "get-intercepted-tweet",
-      body: {
-        originator_id: tweetData.id
+    const loadUserAndRelationships = async () => {
+      const user = await getUser()
+      if (user) {
+        setUserId(user.id)
       }
-    })
+    }
 
-    console.log("GOT RESPONSE",JSON.stringify(response), "for tweet", tweetData.id)
-    setInterceptedTweet(response)
-    })
-  },[])
+    loadUserAndRelationships()
+  }, [])
 
-  if(preferences && preferences.enhanceLongTweetText && interceptedTweet && interceptedTweet.tweet && interceptedTweet.tweet.full_text && interceptedTweet.tweet.full_text.length > 280
-    && isSpecificTweetPage
-  ){ // && interceptedTweet.full_text.length < 2000) {
-    DevLog("Enhancing tweet id", interceptedTweet.tweet_id, "with text", interceptedTweet.tweet.full_text)
-    TweetEnhancements.enhanceTweetWithLongTweetText(tweetElement, interceptedTweet.tweet.full_text)
-  }
-
-
-
+  // Check relationships when userId or preferences change
   useEffect(() => {
-    async function checkRelationships() {
-      if (!userId) return
+    const checkRelationships = async () => {
+      if (!userId || !preferences?.showRelationshipBadges || !interceptedTweet) return
 
       try {
         const [moots, follows, followers] = await Promise.all([
@@ -173,70 +141,100 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
           GlobalCachedData.GetFollows(userId),
           GlobalCachedData.GetFollowers(userId)
         ])
+
         setUserRelationshipStatus({
-          isMutual: moots.some(
-            (moot) => moot.username === tweetData.author.handle
-          ),
-          isFollowed: follows.some(
-            (follow) => follow.username === tweetData.author.handle
-          ),
-          isFollower: followers.some(
-            (follower) => follower.username === tweetData.author.handle
-          )
+          isMutual: moots.some(moot => moot.username === tweetData.author.handle),
+          isFollowed: follows.some(follow => follow.username === tweetData.author.handle),
+          isFollower: followers.some(follower => follower.username === tweetData.author.handle)
         })
-        //DevLog("followers",JSON.stringify(followers))
       } catch (error) {
         DevLog("Error fetching relationship data:" + error, "error")
       }
     }
-    if (!userId) {
-      getUser().then((i) => {
-        if(i) {
-          setUserId(i.id)
-          //DevLog("userId " + i.id, "debug")
+
+    checkRelationships()
+  }, [userId, preferences?.showRelationshipBadges, interceptedTweet])
+
+  // Load intercepted tweet
+  useEffect(() => {
+    const loadInterceptedTweet = async () => {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const response = await sendToBackground({
+        name: "get-intercepted-tweet",
+        body: {
+          originator_id: tweetData.id
         }
       })
+      setInterceptedTweet(response)
     }
 
-    if (userId && preferences && preferences.showRelationshipBadges) {
-      checkRelationships()
+    loadInterceptedTweet()
+  }, [tweetData.id])
+
+  // Apply enhancements based on preferences
+  useEffect(() => {
+    if (!preferences || !tweetElement) return
+
+    // Viral tweets blur
+    if (preferences.blurViralTweets && tweetData.engagement.likes > 100000) {
+      TweetEnhancements.enhanceHighEngagementTweet(tweetElement)
+    } else {
+      TweetEnhancements.removeHighEngagementTweet(tweetElement)
     }
-  }, [tweetData.id, tweetElement, userId])
-  //DevLog(tweetData);
-  if (preferences && preferences.blurViralTweets && tweetData.engagement.likes > 100000) {
-    TweetEnhancements.enhanceHighEngagementTweet(tweetElement)
-  }
 
-  if (preferences && preferences.showRelationshipBadges &&  userRelationshipStatus ) {
-    if (userRelationshipStatus.isMutual) {
-      TweetEnhancements.enhanceMutualTweet(tweetElement)
-    } else if (userRelationshipStatus.isFollowed) {
-      TweetEnhancements.enhanceFollowingTweet(tweetElement)
-    } else if (userRelationshipStatus.isFollower) {
-      TweetEnhancements.enhanceFollowerTweet(tweetElement)
+    // Relationship badges
+    if (preferences.showRelationshipBadges && userRelationshipStatus) {
+      if (userRelationshipStatus.isMutual) {
+        TweetEnhancements.enhanceMutualTweet(tweetElement)
+      } else if (userRelationshipStatus.isFollowed) {
+        TweetEnhancements.enhanceFollowingTweet(tweetElement)
+      } else if (userRelationshipStatus.isFollower) {
+        TweetEnhancements.enhanceFollowerTweet(tweetElement)
+      }
+    } else {
+      TweetEnhancements.removeMutualTweetEnhancements(tweetElement)
+      TweetEnhancements.removeFollowingTweetEnhancements(tweetElement)
+      TweetEnhancements.removeFollowerTweetEnhancements(tweetElement)
     }
-  }
 
-  if(preferences && preferences.enableSignalBoostingUrls) {
-    TweetEnhancements.enhanceSignalBoostingUrls(tweetElement, async ()=> {
-      const user = await getUser();
-      DevLog("signal boosting", tweetData.id, user.id)
-      await supabase.from("signal_boosts").upsert({
-        tweet_id: tweetData.id,
-        boosted_by: user.id
-      });
+    // Signal boosting URLs
+    if (preferences.enableSignalBoostingUrls) {
+      TweetEnhancements.enhanceSignalBoostingUrls(tweetElement, async () => {
+        const user = await getUser()
+        DevLog("signal boosting", tweetData.id, user.id)
+        await supabase.from("signal_boosts").upsert({
+          tweet_id: tweetData.id,
+          boosted_by: user.id
+        })
+      })
+    } else {
+      TweetEnhancements.removeSignalBoostingUrls(tweetElement)
+    }
 
-    })
-  }
+    // User obfuscation
+    if (userId && preferences.obfuscateAllUsers) {
+      TweetEnhancements.obfuscateUser(tweetElement)
+    } else {
+      TweetEnhancements.removeObfuscation(tweetElement)
+    }
 
-  //DevLog(`preferences x-tweets ${JSON.stringify(preferences)}`)
-  if(userId && preferences && preferences.obfuscateAllUsers) {
-    TweetEnhancements.obfuscateUser(tweetElement)
-  }
+    // Original poster badge
+    if (preferences.showOriginalPosterBadge && openXUsername === tweetData.author.handle) {
+      TweetEnhancements.enhanceOriginalPoster(tweetElement)
+    } else {
+      TweetEnhancements.removeOriginalPosterEnhancements(tweetElement)
+    }
 
-  if(preferences && preferences.showOriginalPosterBadge && openXUsername === tweetData.author.handle) {
-    TweetEnhancements.enhanceOriginalPoster(tweetElement)
-  }
+    // Long tweet text enhancement
+    if (preferences.enhanceLongTweetText && 
+        interceptedTweet?.tweet?.full_text && 
+        interceptedTweet.tweet.full_text.length > 280 && 
+        isSpecificTweetPage) {
+      TweetEnhancements.enhanceTweetWithLongTweetText(tweetElement, interceptedTweet.tweet.full_text)
+    } else {
+      TweetEnhancements.removeLongTweetText(tweetElement)
+    }
+  }, [preferences, tweetElement, userRelationshipStatus, interceptedTweet, userId])
 
   //TweetEnhancements.applyTextModifiers(tweetElement)
 
