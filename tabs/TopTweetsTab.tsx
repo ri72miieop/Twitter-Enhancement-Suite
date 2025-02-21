@@ -17,7 +17,7 @@ function TopTweetsTab() {
     null
   )
 
-  const urlsToIgnore = ["x.com/compose/post","x.com/settings/"]
+  const urlsToIgnore = ["x.com/compose/post","x.com/settings/","x.com/jobs"]
 
   useEffect(() => {
     const updateUsername = async () => {
