@@ -17,6 +17,8 @@ function TopTweetsTab() {
     null
   )
 
+  const urlsToIgnore = ["x.com/compose/post","x.com/settings/"]
+
   useEffect(() => {
     const updateUsername = async () => {
       // Get the active tab in the current window
@@ -29,16 +31,21 @@ function TopTweetsTab() {
         const currentUrl = currentTab.url
         const currentTitle = currentTab.title
         DevLog(`Initial URL: ${currentUrl}`)
+        DevLog(`isIgnored: ${urlsToIgnore.some(url => currentUrl.includes(url))}`);
+        if (!urlsToIgnore.some(url => currentUrl.includes(url))) {
         const username = extractXUsername(currentUrl)
-        setUsername(username)
+        setUsername(username)}
         setUrl(currentUrl)
       }
     }
   
     const updateUsernameFromUrl = async (url: string) => {
       DevLog(`Current URL: ${url}`)
+      DevLog(`isIgnored: ${urlsToIgnore.some(urlsToIgnore => url.includes(urlsToIgnore))}`);
+      if (!urlsToIgnore.some(urlsToIgnore => url.includes(urlsToIgnore))) {
+
       const username = extractXUsername(url)
-      setUsername(username)
+      setUsername(username)}
       setUrl(url)
     }
   
