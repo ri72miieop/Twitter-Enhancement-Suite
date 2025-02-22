@@ -10,7 +10,6 @@ import type { UserMinimal } from "~utils/dbUtils"
 import { getUser } from "~utils/dbUtils"
 import { DevLog, PLASMO_PUBLIC_RECORD_EXPIRY_SECONDS } from "~utils/devUtils"
 import { indexDB, type TimedObject } from "~utils/IndexDB"
-import { getPreferenceValue } from "./preference-changed"
 
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   const type = req.body.type
@@ -216,7 +215,7 @@ async function isValidUserMentioned(userId: string) {
       id: user.user_id,
       timestamp: new Date().toISOString()
     }))
-    await indexDB.userMentions.bulkAdd(items)
+    await indexDB.userMentions.bulkPut(items)
     return true
   }
 }
