@@ -84,7 +84,7 @@ function OurConversationsTab() {
       async function checkUsernameExistsInCA() {
         if (username) {
           const { data, error } = await supabase
-            .from("account")
+            .from("all_account")
             .select("account_id,username,account_display_name")
             .ilike("username", username)
             .single()
