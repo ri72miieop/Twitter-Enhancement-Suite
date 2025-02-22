@@ -170,6 +170,26 @@ const InterceptorDashboard = () => {
         </div>
       )}
 
+      {/* Stats */}
+      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Object.entries(data).map(([type, items]) => {
+          const filteredItems = filterData(items)
+          return (
+            <div
+              key={type}
+              className={`${getTypeColor(
+                type
+              )} rounded-lg p-4 text-center shadow-sm`}>
+              <p className="text-sm font-medium text-gray-600">{type}</p>
+              <p className="text-2xl font-bold text-gray-800">
+                {filteredItems.length}
+              </p>
+              <p className="text-xs text-gray-500">items</p>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Filters */}
       <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center gap-2 mb-3">
@@ -263,25 +283,7 @@ const InterceptorDashboard = () => {
         })}
       </div>
 
-      {/* Stats */}
-      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(data).map(([type, items]) => {
-          const filteredItems = filterData(items)
-          return (
-            <div
-              key={type}
-              className={`${getTypeColor(
-                type
-              )} rounded-lg p-4 text-center shadow-sm`}>
-              <p className="text-sm font-medium text-gray-600">{type}</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {filteredItems.length}
-              </p>
-              <p className="text-xs text-gray-500">items</p>
-            </div>
-          )
-        })}
-      </div>
+      
     </div>
   )
 }
