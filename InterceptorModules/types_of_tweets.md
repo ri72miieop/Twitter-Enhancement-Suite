@@ -60,3 +60,7 @@ thread with several longtweets
 
 Tweet with edits
 https://x.com/IaimforGOAT/status/1889827091128172951
+
+
+Circle Tweet
+    https://x.com/not_a_hot_girl/status/1613229191306313729
