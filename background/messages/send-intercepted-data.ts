@@ -366,11 +366,13 @@ async function processTweet(data: Tweet, hashed_userid: string) {
 
     // URLs
     if (urls?.length) {
+      //due to tweet_urls not having an ID we need to put the # of the tweet_url in the item_id
+      let url_id = 0;
       recordsToInsert.push(
         ...urls.map((u) => ({
           timestamp: timestamp,
           type: "import_url",
-          item_id: u.tweet_id.toString()+suffix,
+          item_id: (url_id++).toString()+suffix,
           originator_id,
           user_id: hashed_userid,
           data: u

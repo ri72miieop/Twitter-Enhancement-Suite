@@ -179,8 +179,13 @@ export class TwitterDataMapper {
     
       private static mapMentions(mentions: any[] | undefined, tweetId: string): Database.InsertUserMentions[] | undefined {
         if (!mentions?.length) return undefined;
+
+        // Filter out duplicates based on mentioned_user_id
+        const uniqueMentions = mentions.filter((mention, index, self) =>
+          index === self.findIndex(m => m.id_str === mention.id_str)
+        );
     
-        return mentions.map(m => ({
+        return uniqueMentions.map(m => ({
           tweet_id: tweetId,
           mentioned_user_id: m.id_str,
           username: m.screen_name,
