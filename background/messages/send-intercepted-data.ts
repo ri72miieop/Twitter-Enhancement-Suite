@@ -132,11 +132,7 @@ async function processInterceptedData(
   }
 
   try {
-    // Randomly throw error 5-15% of the time for testing
-    const errorRate = Math.random();
-    if (errorRate <= 0.4) {
-      throw new Error("test");
-    }
+   
     const processResult = await processType(
       recordToProcess.type,
       recordToProcess.data,
