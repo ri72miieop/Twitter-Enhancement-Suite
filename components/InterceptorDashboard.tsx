@@ -1,23 +1,31 @@
 import { sendToBackground } from "@plasmohq/messaging"
-import { faFilter } from "@fortawesome/free-solid-svg-icons"
+import { faFilter, faRotate } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useState } from "react"
 
 import { indexDB, type TimedObject, type TimedObjectWithCanSendToCA } from "~utils/IndexDB"
 import { DevLog } from "~utils/devUtils"
+import posthog from "~core/posthog"
+import { getUser } from "~utils/dbUtils"
 
 type GroupedData = {
   [key: string]: TimedObjectWithCanSendToCA[]
 }
 
+// List of error reasons that can be reprocessed
+const REPROCESSABLE_ERRORS = [
+  "Error processing tweet.",
+  "Error uploading to Supabase"
+]
+
 const InterceptorDashboard = () => {
   const [data, setData] = useState<GroupedData>({})
   const [isLoading, setIsLoading] = useState(true)
   const [selectedType, setSelectedType] = useState<string>("all")
-  const [selectedTimestampStatus, setSelectedTimestampStatus] = useState<string>("all")
   const [selectedCanSendStatus, setSelectedCanSendStatus] = useState<string>("all")
   const [selectedReason, setSelectedReason] = useState<string>("all")
   const [error, setError] = useState<string | null>(null)
+  const [processingReasons, setProcessingReasons] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,9 +97,6 @@ const InterceptorDashboard = () => {
     return items.filter((item) => {
       const matchesType = selectedType === "all" || item.type === selectedType
       
-      const matchesTimestamp = selectedTimestampStatus === "all" 
-        || (selectedTimestampStatus === "not processed" && !item.timestamp)
-        || (selectedTimestampStatus === "processed" && item.timestamp)
 
       const matchesCanSend = selectedCanSendStatus === "all"
         || (selectedCanSendStatus === "yes" && item.canSendToCA === true)
@@ -100,55 +105,130 @@ const InterceptorDashboard = () => {
       const matchesReason = selectedReason === "all" 
         || item.reason === selectedReason
 
-      return matchesType && matchesTimestamp && matchesCanSend && matchesReason
+      return matchesType && matchesCanSend && matchesReason
     }).sort((a, b) => {
       return new Date(b.date_added).getTime() - new Date(a.date_added).getTime()
     })
   }
 
+  // Function to handle reprocessing all items with a specific reason
+  const handleReprocessByReason = async (reason: string) => {
+    try {
+      // Add reason to processing set to show loading state
+      setProcessingReasons(prev => new Set(prev).add(reason))
+      const user = await getUser();
+      // Get all items with this reason
+      const itemsToReprocess = Object.values(data)
+        .flat()
+        .filter(item => item.reason === reason)
+      
+      // Process each item
+      for (const item of itemsToReprocess) {
+        const response = await sendToBackground({
+          name: "send-intercepted-data",
+          body: {
+            originator_id: item.originator_id,
+            item_id: item.item_id,
+            type: item.type,
+            data: item.data,
+            userid: item.user_id
+          }
+        })
+        
+        if (!response.success && isReprocessableReason(response.error)) {
+          posthog.capture("reprocess_error", {
+            user_id: user?.id??"anon",
+            error: response.error,
+            data: item,
+            timestamp: new Date().toISOString()
+          })
+        }
 
-  const renderDataCard = (item: TimedObjectWithCanSendToCA) => (
-    <div
-      key={`${item.originator_id}-${item.item_id}`}
-      className={`${getTypeColor(
-        item.type
-      )} rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow`}>
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-sm font-medium text-gray-600">{item.type}</span>
-        <span className="text-xs text-gray-500">
-          Sent to CA at: {formatTimestamp(item.timestamp)}
-        <br />
-          Added to localdb at: {new Date(item.date_added).toLocaleString()}
+        DevLog("Reprocessed item:",item, "Success:", response.success)
+      }
+      
+      // Refresh data after successful reprocessing
+      const updatedResponse = await sendToBackground({
+        name: "get-all-intercepted-data"
+      })
+      
+      if (!updatedResponse.success) {
+        throw new Error(updatedResponse.error || "Failed to refresh data")
+      }
+      
+      const allData = updatedResponse.data
+      const grouped = allData.reduce((acc: GroupedData, dataItem) => {
+        const type = dataItem.type || "unknown"
+        if (!acc[type]) {
+          acc[type] = []
+        }
+        acc[type].push(dataItem)
+        return acc
+      }, {})
+      
+      setData(grouped)
+      
+    } catch (error) {
+      DevLog("Error reprocessing items:", error)
+      setError(`Failed to reprocess items: ${error.message}`)
+    } finally {
+      // Remove reason from processing set
+      setProcessingReasons(prev => {
+        const updated = new Set(prev)
+        updated.delete(reason)
+        return updated
+      })
+    }
+  }
 
+  // Check if a reason is reprocessable
+  const isReprocessableReason = (reason: string): boolean => {
+    return REPROCESSABLE_ERRORS.includes(reason)
+  }
 
-        </span>
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm">
-
-          <span className="font-medium">ID:</span> {item.item_id}
-        </p>
-        <p className="text-sm">
-          <span className="font-medium">Originator:</span> {item.originator_id}
-        </p>
-        <p className="text-sm">
-          <span className="font-medium">User ID:</span>{" "}
-          {item.user_id || "Not available"}
-        </p>
-        {item.canSendToCA !== undefined && (
+  const renderDataCard = (item: TimedObjectWithCanSendToCA) => {
+    const isProcessing = item.reason && processingReasons.has(item.reason)
+    
+    return (
+      <div
+        key={`${item.originator_id}-${item.item_id}`}
+        className={`${getTypeColor(
+          item.type
+        )} rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow`}>
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-sm font-medium text-gray-600">{item.type}</span>
+          <span className="text-xs text-gray-500">
+            Sent to CA at: {formatTimestamp(item.timestamp)}
+          <br />
+            Added to localdb at: {new Date(item.date_added).toLocaleString()}
+          </span>
+        </div>
+        <div className="space-y-1">
           <p className="text-sm">
-            <span className="font-medium">Can Send to CA:</span>{" "}
-            {item.canSendToCA ? "Yes" : "No"}
+            <span className="font-medium">ID:</span> {item.item_id}
           </p>
-        )}
-        {item.reason && (
-          <p className="text-sm text-red-600">
-            <span className="font-medium">Reason:</span> {item.reason}
+          <p className="text-sm">
+            <span className="font-medium">Originator:</span> {item.originator_id}
           </p>
-        )}
+          <p className="text-sm">
+            <span className="font-medium">User ID:</span>{" "}
+            {item.user_id || "Not available"}
+          </p>
+          {item.canSendToCA !== undefined && (
+            <p className="text-sm">
+              <span className="font-medium">Can Send to CA:</span>{" "}
+              {item.canSendToCA ? "Yes" : "No"}
+            </p>
+          )}
+          {item.reason && (
+            <p className="text-sm text-red-600">
+              <span className="font-medium">Reason:</span> {item.reason}
+            </p>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   if (isLoading) {
     return (
@@ -159,6 +239,7 @@ const InterceptorDashboard = () => {
   }
 
   const types = ["all", ...Object.keys(data)]
+  const uniqueReasons = getUniqueReasons()
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -169,6 +250,8 @@ const InterceptorDashboard = () => {
           {error}
         </div>
       )}
+
+      
 
       {/* Stats */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -188,6 +271,36 @@ const InterceptorDashboard = () => {
             </div>
           )
         })}
+      </div>
+
+      {/* Reprocess Buttons for Each Reprocessable Error */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        {uniqueReasons
+          .filter(isReprocessableReason)
+          .map(reason => {
+            const isProcessing = processingReasons.has(reason)
+            const itemCount = Object.values(data)
+              .flat()
+              .filter(item => item.reason === reason)
+              .length
+              
+            return (
+              <button
+                key={reason}
+                onClick={() => handleReprocessByReason(reason)}
+                disabled={isProcessing}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+                  ${isProcessing 
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+                    : 'bg-blue-500 text-white hover:bg-blue-600'}`}>
+                <FontAwesomeIcon 
+                  icon={faRotate} 
+                  className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} 
+                />
+                {isProcessing ? 'Processing...' : `Reprocess ${itemCount} items with "${reason}"`}
+              </button>
+            )
+          })}
       </div>
 
       {/* Filters */}
@@ -218,20 +331,6 @@ const InterceptorDashboard = () => {
             </select>
           </div>
 
-          {/* Timestamp Status Filter */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-gray-500 mb-1 block">
-              Processing Status
-            </label>
-            <select
-              value={selectedTimestampStatus}
-              onChange={(e) => setSelectedTimestampStatus(e.target.value)}
-              className="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-              <option value="all">All</option>
-              <option value="not processed">Not Processed</option>
-              <option value="processed">Processed</option>
-            </select>
-          </div>
 
           {/* Can Send to CA Filter */}
           <div className="flex-1 min-w-[200px]">
@@ -282,8 +381,6 @@ const InterceptorDashboard = () => {
           return filteredItems.map((item) => renderDataCard(item))
         })}
       </div>
-
-      
     </div>
   )
 }

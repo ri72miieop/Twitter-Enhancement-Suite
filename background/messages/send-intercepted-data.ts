@@ -28,16 +28,19 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       "Interceptor.background.message - send-intercepted-data: Sending intercepted data to IndexDB:",
       req.body.originator_id
     )
-    await processInterceptedData(
+    const result = await processInterceptedData(
       req.body.data,
       type,
       req.body.originator_id,
       req.body.item_id,
       req.body.userid
     )
-    //await functionToCall(req.body.data, type, user);
-
-    res.send({ success: true })
+    
+    if (result.success) {
+      res.send({ success: true })
+    } else {
+      res.send({ success: false, error: result.reason })
+    }
   } catch (error) {
     DevLog(`Error processing ${type}: ${error.message}`, "error")
     res.send({ success: false, error: error.message })
@@ -50,7 +53,7 @@ async function processInterceptedData(
   originator_id: string,
   item_id: string,
   userid: string
-) {
+): Promise<{success: boolean, reason?: string}> {
   DevLog("Processing intercepted data", originator_id)
   
   // Check for duplicates
@@ -74,7 +77,7 @@ async function processInterceptedData(
   
   const recordId = await indexDB.data.put({
     timestamp: null,
-    type: `api_${type}`,
+    type: type.startsWith("api_") ? type : `api_${type}`,
     originator_id,
     item_id,
     data,
@@ -82,7 +85,6 @@ async function processInterceptedData(
     canSendToCA: canScrape && canSendToCA,
     date_added: new Date().toISOString()
   })
-
 
   const { data: dbData } = await supabase
     .from("temporary_data")
@@ -104,12 +106,9 @@ async function processInterceptedData(
       canSendToCA: false,
       reason: "Record is too recent in DB"
     })
-    return
+    return {success: false, reason: "Record is too recent in DB"}
   }
 
-
-  
-  
   if (!canScrape || !canSendToCA) {
     DevLog("User blocked from scraping or cannot send to CA")
     DevLog("user preferences: " + JSON.stringify(userpreferences) + " canSendToCA " + canSendToCA + " canScrape " + canScrape)
@@ -118,15 +117,14 @@ async function processInterceptedData(
       reason: canScrape ? "User has disabled sending data to CA" : "User blocked from scraping"
     })
 
-    return
+    return {success: false, reason: canScrape ? "User has disabled sending data to CA" : "User blocked from scraping"}
   }
-
 
   // Create record with current timestamp
   const timestamp = new Date().toISOString()
   const recordToProcess: TimedObject = {
     timestamp,
-    type: `api_${type}`,
+    type: type.startsWith("api_") ? type : `api_${type}`,
     originator_id,
     item_id,
     data,
@@ -134,6 +132,11 @@ async function processInterceptedData(
   }
 
   try {
+    // Randomly throw error 5-15% of the time for testing
+    const errorRate = Math.random();
+    if (errorRate <= 0.4) {
+      throw new Error("test");
+    }
     const processResult = await processType(
       recordToProcess.type,
       recordToProcess.data,
@@ -155,22 +158,24 @@ async function processInterceptedData(
 
       if (error) {
         DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
-        throw error
+        await indexDB.data.update(recordId, { canSendToCA: false, reason: "Error uploading to Supabase" })
+        return {success: false, reason: `Error uploading to Supabase: ${error.message}`}
       }
       // Update IndexDB with processed timestamp
       await indexDB.data.update(recordId, { timestamp })
       
-    }else{
+    } else {
       await indexDB.data.update(recordId, { canSendToCA: false, reason: processResult.reason })
+      return {success: false, reason: processResult.reason}
     }
   } catch (error) {
     DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
     await indexDB.data.update(recordId, { canSendToCA: false, reason: "Error uploading to Supabase" })
-    throw error
+    return {success: false, reason: `Error uploading to Supabase: ${error.message}`}
   }
-  
 
   DevLog(`Successfully processed data for: ${originator_id}`)
+  return {success: true}
 }
 
 async function hashUserId(userId: string): Promise<string> {
@@ -184,6 +189,11 @@ async function hashUserId(userId: string): Promise<string> {
     console.error("Error hashing userId:", error)
     throw error
   }
+}
+
+async function isLoggedInUser(userId: string) {
+  const user = await getUser();
+  return user && user.id === userId;
 }
 
 async function isValidUserMentioned(userId: string) {
@@ -244,18 +254,18 @@ async function processType(type: string, data: any, hashed_userid: string) {
           "Interceptor.background.process.validateUserMention - JSON:" +
             JSON.stringify(itemToProccess.core.user_results.result)
         )
-        const userMention = await isValidUserMentioned(userId)
+        const isValidUser = await isLoggedInUser(userId) || await isValidUserMentioned(userId)
         DevLog(
           `Interceptor.background.process.validateUserMention.${userId}.check`
         )
-        if (!userMention) {
+        if (!isValidUser) {
           DevLog(
-            `Interceptor.background.process.validateUserMention.${userId}.no`
+            `Interceptor.background.process.validateUser.${userId}.no`
           )
           return {success: false, reason: "[Current Data Policy] User has not been mentioned in the CA."}
         } else {
           DevLog(
-            `Interceptor.background.process.validateUserMention.${userId}.yes`
+            `Interceptor.background.process.validateUser.${userId}.yes`
           )
         }
 
