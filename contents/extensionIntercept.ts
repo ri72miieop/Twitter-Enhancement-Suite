@@ -36,7 +36,8 @@ async function init() {
             originator_id: event.detail.originator_id,
             item_id: event.detail.item_id,
             timestamp: dataObject.timestamp,
-            userid: userid
+            userid: userid,
+            date_added: new Date().toISOString()
           }
         })
       } catch (error) {

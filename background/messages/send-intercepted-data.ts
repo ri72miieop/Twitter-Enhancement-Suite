@@ -33,7 +33,8 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       type,
       req.body.originator_id,
       req.body.item_id,
-      req.body.userid
+      req.body.userid,
+      req.body.date_added
     )
     
     if (result.success) {
@@ -52,7 +53,8 @@ async function processInterceptedData(
   type: string,
   originator_id: string,
   item_id: string,
-  userid: string
+  userid: string,
+  date_added: string
 ): Promise<{success: boolean, reason?: string}> {
   DevLog("Processing intercepted data", originator_id)
   
@@ -74,16 +76,17 @@ async function processInterceptedData(
   const canScrape = await GlobalCachedData.GetCanScrape(userid);
   const userpreferences = await GlobalCachedData.GetEnhancementPreferences();
   const canSendToCA = userpreferences.scrapeData;
+  const itemType = type.startsWith("api_") ? type : `api_${type}`
   
   const recordId = await indexDB.data.put({
     timestamp: null,
-    type: type.startsWith("api_") ? type : `api_${type}`,
+    type: itemType,
     originator_id,
     item_id,
     data,
     user_id: userid,
     canSendToCA: canScrape && canSendToCA,
-    date_added: new Date().toISOString()
+    date_added
   })
 
   const { data: dbData } = await supabase
@@ -91,11 +94,38 @@ async function processInterceptedData(
     .select("originator_id,item_id,timestamp")
     .eq("originator_id", originator_id)
     .eq("item_id", item_id)
-    .eq("type", type)
+    .eq("type", itemType)
     .order("timestamp", { ascending: false })
     .limit(1)
 
+    
+  if (dbData?.length > 0 && dbData[0]?.timestamp) {
+    DevLog("record_check: Found existing record in DB:", {
+      timestamp: dbData[0].timestamp,
+      isRecent: new Date(dbData[0].timestamp).getTime() > expiryTime,
+      isNewerThanCurrent: new Date(dbData[0].timestamp).getTime() > new Date(date_added).getTime()
+    })
+  } else {
+    DevLog("record_check: No existing record found in DB")
+  }
+
+  // skip if already there's a record more recent than the one we are trying to (re)process
+  if (
+    dbData?.length > 0 &&
+    dbData[0].timestamp &&
+    new Date(dbData[0].timestamp).getTime() > new Date(date_added).getTime()
+  ) {
+    DevLog(`Record is more recent than the one we are trying to (re)process, skipping: ${originator_id}`)
+    await indexDB.data.update(recordId, {
+      canSendToCA: false,
+      reason: "[Current Data Policy] This record is outdated and a more recent record already exists."
+    })
+    return {success: false, reason: "[Current Data Policy] This record is outdated and a more recent record already exists."}
+  }
+
+
   // Skip if recent record exists in DB
+  //TODO: change this to have a dynamic expiry based on the age of the tweet, if the tweet is older than 1y there's not much value in still sending one file each X minutes
   if (
     dbData?.length > 0 &&
     dbData[0].timestamp &&
@@ -104,10 +134,12 @@ async function processInterceptedData(
     DevLog(`Record is too recent in DB, skipping: ${originator_id}`)
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: "Record is too recent in DB"
+      reason: "[Current Data Policy] This record was already sent recently."
     })
-    return {success: false, reason: "Record is too recent in DB"}
+    return {success: false, reason: "[Current Data Policy] This record was already sent recently."}
   }
+
+  
 
   if (!canScrape || !canSendToCA) {
     DevLog("User blocked from scraping or cannot send to CA")

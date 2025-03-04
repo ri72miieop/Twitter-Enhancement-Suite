@@ -131,7 +131,8 @@ const InterceptorDashboard = () => {
             item_id: item.item_id,
             type: item.type,
             data: item.data,
-            userid: item.user_id
+            userid: item.user_id,
+            date_added: item.date_added
           }
         })
         
