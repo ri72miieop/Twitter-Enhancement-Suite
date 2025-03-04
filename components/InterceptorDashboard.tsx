@@ -35,6 +35,7 @@ const InterceptorDashboard = () => {
         })
         DevLog("Response from background:", response)
         if (!response.success) {
+          DevLog("Error fetching data from background:", response.error,"error")
           throw new Error(response.error || "Failed to fetch data")
         }
 
@@ -51,7 +52,7 @@ const InterceptorDashboard = () => {
         setData(grouped)
         setError(null)
       } catch (error) {
-        DevLog("Error fetching data from background:", error)
+        DevLog("Error fetching data from background:", error,"error")
         setError("Failed to load data. Please try again later.")
       } finally {
         setIsLoading(false)
@@ -154,6 +155,7 @@ const InterceptorDashboard = () => {
       })
       
       if (!updatedResponse.success) {
+        DevLog("Error fetching data from background after reprocessing:", updatedResponse.error,"error")
         throw new Error(updatedResponse.error || "Failed to refresh data")
       }
       
@@ -170,7 +172,7 @@ const InterceptorDashboard = () => {
       setData(grouped)
       
     } catch (error) {
-      DevLog("Error reprocessing items:", error)
+      DevLog("Error reprocessing items:", error,"error")
       setError(`Failed to reprocess items: ${error.message}`)
     } finally {
       // Remove reason from processing set
