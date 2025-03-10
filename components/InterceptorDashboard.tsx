@@ -1,5 +1,5 @@
 import { sendToBackground } from "@plasmohq/messaging"
-import { faFilter, faRotate, faDownload, faFileZipper } from "@fortawesome/free-solid-svg-icons"
+import { faFilter, faRotate, faDownload, faFileZipper, faChevronLeft, faChevronRight } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useState } from "react"
 
@@ -19,8 +19,32 @@ const REPROCESSABLE_ERRORS = [
   "Error uploading to Supabase"
 ]
 
+// New types for the updated response structure
+type PaginationInfo = {
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+type OverviewStats = {
+  typeCounts: Record<string, number>
+  reasonCounts: Record<string, number>
+  canSendCounts: Record<string, number>
+  reprocessableCountByReason: Record<string, number>
+  totalRecords: number
+}
+
+type BackgroundResponse = {
+  success: boolean
+  data: TimedObjectWithCanSendToCA[]
+  pagination: PaginationInfo
+  overview: OverviewStats
+  error?: string
+}
+
 const InterceptorDashboard = () => {
-  const [data, setData] = useState<GroupedData>({})
+  const [data, setData] = useState<TimedObjectWithCanSendToCA[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedType, setSelectedType] = useState<string>("all")
   const [selectedCanSendStatus, setSelectedCanSendStatus] = useState<string>("all")
@@ -29,46 +53,74 @@ const InterceptorDashboard = () => {
   const [processingReasons, setProcessingReasons] = useState<Set<string>>(new Set())
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadType, setDownloadType] = useState<string | null>(null)
+  
+  // New state for pagination and overview stats
+  const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, pageSize: 50, totalCount: 0, totalPages: 0 })
+  const [overview, setOverview] = useState<OverviewStats>({
+    typeCounts: {},
+    reasonCounts: {},
+    canSendCounts: {},
+    reprocessableCountByReason: {},
+    totalRecords: 0
+  })
+  
+  // New state for progress tracking
+  const [progressInfo, setProgressInfo] = useState<{
+    operation: string;
+    current: number;
+    total: number;
+    percent: number;
+  } | null>(null)
+
+  const fetchData = async (page = 1, filters = { type: selectedType, canSendStatus: selectedCanSendStatus, reason: selectedReason }) => {
+    try {
+      setIsLoading(true)
+      const response: BackgroundResponse = await sendToBackground({
+        name: "get-all-intercepted-data",
+        body: {
+          type: filters.type !== "all" ? filters.type : undefined,
+          canSendStatus: filters.canSendStatus !== "all" 
+            ? filters.canSendStatus === "yes" ? "true" : "false" 
+            : undefined,
+          reason: filters.reason !== "all" ? filters.reason : undefined,
+          page,
+          pageSize: pagination.pageSize
+        }
+      })
+      
+      DevLog("Response from background:", response)
+      if (!response.success) {
+        DevLog("Error fetching data from background:", response.error, "error")
+        throw new Error(response.error || "Failed to fetch data")
+      }
+
+      // Update state with the new data structure
+      setData(response.data)
+      setPagination(response.pagination)
+      setOverview(response.overview)
+      setError(null)
+    } catch (error) {
+      DevLog("Error fetching data from background:", error, "error")
+      setError("Failed to load data. Please try again later.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await sendToBackground({
-          name: "get-all-intercepted-data"
-        })
-        DevLog("Response from background:", response)
-        if (!response.success) {
-          DevLog("Error fetching data from background:", response.error,"error")
-          throw new Error(response.error || "Failed to fetch data")
-        }
-
-        const allData = response.data
-        const grouped = allData.reduce((acc: GroupedData, item) => {
-          const type = item.type || "unknown"
-          if (!acc[type]) {
-            acc[type] = []
-          }
-          acc[type].push(item)
-          return acc
-        }, {})
-
-        setData(grouped)
-        setError(null)
-      } catch (error) {
-        DevLog("Error fetching data from background:", error,"error")
-        setError("Failed to load data. Please try again later.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchData()
 
     // Set up periodic refresh every 30 seconds
-    const intervalId = setInterval(fetchData, 30000)
+    //const intervalId = setInterval(() => fetchData(pagination.page), 30000)
 
-    return () => clearInterval(intervalId)
+    //return () => clearInterval(intervalId)
   }, [])
+
+  // Handle filter changes
+  useEffect(() => {
+    // Reset to page 1 when filters change
+    fetchData(1, { type: selectedType, canSendStatus: selectedCanSendStatus, reason: selectedReason })
+  }, [selectedType, selectedCanSendStatus, selectedReason])
 
   const getTypeColor = (type: string): string => {
     const colors: { [key: string]: string } = {
@@ -88,31 +140,7 @@ const InterceptorDashboard = () => {
   }
 
   const getUniqueReasons = () => {
-    const reasons = new Set<string>()
-    Object.values(data).flat().forEach((item) => {
-      if (item.reason) {
-        reasons.add(item.reason)
-      }
-    })
-    return Array.from(reasons)
-  }
-
-  const filterData = (items: TimedObjectWithCanSendToCA[]) => {
-    return items.filter((item) => {
-      const matchesType = selectedType === "all" || item.type === selectedType
-      
-
-      const matchesCanSend = selectedCanSendStatus === "all"
-        || (selectedCanSendStatus === "yes" && item.canSendToCA === true)
-        || (selectedCanSendStatus === "no" && item.canSendToCA === false)
-
-      const matchesReason = selectedReason === "all" 
-        || item.reason === selectedReason
-
-      return matchesType && matchesCanSend && matchesReason
-    }).sort((a, b) => {
-      return new Date(b.date_added).getTime() - new Date(a.date_added).getTime()
-    })
+    return Object.keys(overview.reasonCounts || {})
   }
 
   // Function to handle reprocessing all items with a specific reason
@@ -120,13 +148,29 @@ const InterceptorDashboard = () => {
     try {
       // Add reason to processing set to show loading state
       setProcessingReasons(prev => new Set(prev).add(reason))
+      setProgressInfo({ operation: 'reprocess', current: 0, total: 0, percent: 0 })
       const user = await getUser();
-      // Get all items with this reason
-      const itemsToReprocess = Object.values(data)
-        .flat()
-        .filter(item => item.reason === reason)
       
-      // Process each item
+      // Get all items with this reason using batched approach
+      const filters = {
+        reason,
+        // Keep other current filters to be consistent
+        type: selectedType !== "all" ? selectedType : undefined,
+        canSendStatus: selectedCanSendStatus !== "all" 
+          ? selectedCanSendStatus === "yes" ? "true" : "false" 
+          : undefined
+      }
+      
+      DevLog(`Fetching items to reprocess with reason "${reason}"`)
+      
+      // Use a smaller batch size for reprocessing to show progress more frequently
+      const itemsToReprocess = await fetchAllDataInBatches(200, filters)
+      
+      DevLog(`Found ${itemsToReprocess.length} items to reprocess with reason "${reason}"`)
+      setProgressInfo({ operation: 'reprocess', current: 0, total: itemsToReprocess.length, percent: 0 })
+      
+      // Process each item with progress tracking
+      let processedCount = 0
       for (const item of itemsToReprocess) {
         const response = await sendToBackground({
           name: "send-intercepted-data",
@@ -149,33 +193,26 @@ const InterceptorDashboard = () => {
           })
         }
 
-        DevLog("Reprocessed item:",item, "Success:", response.success)
+        processedCount++
+        if (processedCount % 10 === 0 || processedCount === itemsToReprocess.length) {
+          const progress = Math.round((processedCount / itemsToReprocess.length) * 100)
+          DevLog(`Reprocessing progress: ${progress}% (${processedCount}/${itemsToReprocess.length})`)
+          setProgressInfo({ 
+            operation: 'reprocess', 
+            current: processedCount, 
+            total: itemsToReprocess.length, 
+            percent: progress 
+          })
+        }
+        
+        DevLog("Reprocessed item:", item, "Success:", response.success)
       }
       
       // Refresh data after successful reprocessing
-      const updatedResponse = await sendToBackground({
-        name: "get-all-intercepted-data"
-      })
-      
-      if (!updatedResponse.success) {
-        DevLog("Error fetching data from background after reprocessing:", updatedResponse.error,"error")
-        throw new Error(updatedResponse.error || "Failed to refresh data")
-      }
-      
-      const allData = updatedResponse.data
-      const grouped = allData.reduce((acc: GroupedData, dataItem) => {
-        const type = dataItem.type || "unknown"
-        if (!acc[type]) {
-          acc[type] = []
-        }
-        acc[type].push(dataItem)
-        return acc
-      }, {})
-      
-      setData(grouped)
+      fetchData(pagination.page)
       
     } catch (error) {
-      DevLog("Error reprocessing items:", error,"error")
+      DevLog("Error reprocessing items:", error, "error")
       setError(`Failed to reprocess items: ${error.message}`)
     } finally {
       // Remove reason from processing set
@@ -184,6 +221,7 @@ const InterceptorDashboard = () => {
         updated.delete(reason)
         return updated
       })
+      setProgressInfo(null)
     }
   }
 
@@ -241,11 +279,13 @@ const InterceptorDashboard = () => {
     try {
       setIsDownloading(true)
       setDownloadType('all')
+      setProgressInfo({ operation: 'download', current: 0, total: 0, percent: 0 })
       
-      // Get all data from all types
-      const allData = Object.values(data).flat()
+      // Fetch data in batches
+      const allData = await fetchAllDataInBatches()
       
       DevLog(`Preparing to download all data (${allData.length} items)`)
+      setProgressInfo({ operation: 'download', current: allData.length, total: allData.length, percent: 100 })
       
       // Download all data as a single JSON file
       downloadDataAsJson(allData)
@@ -259,6 +299,7 @@ const InterceptorDashboard = () => {
       setTimeout(() => {
         setIsDownloading(false)
         setDownloadType(null)
+        setProgressInfo(null)
       }, 1000)
     }
   }
@@ -268,11 +309,13 @@ const InterceptorDashboard = () => {
     try {
       setIsDownloading(true)
       setDownloadType('byOriginator')
+      setProgressInfo({ operation: 'download', current: 0, total: 0, percent: 0 })
       
-      // Get all data from all types
-      const allData = Object.values(data).flat()
+      // Fetch data in batches
+      const allData = await fetchAllDataInBatches()
       
       DevLog(`Preparing to download data by originator (${allData.length} items)`)
+      setProgressInfo({ operation: 'download', current: allData.length, total: allData.length, percent: 100 })
       
       // Download data grouped by originator
       downloadDataByOriginator(allData)
@@ -284,12 +327,14 @@ const InterceptorDashboard = () => {
         DevLog("Download by originator process completed")
         setIsDownloading(false)
         setDownloadType(null)
+        setProgressInfo(null)
       }, 5000) // Give enough time for downloads to start
     } catch (error) {
       DevLog("Error downloading data by originator:", error, "error")
       setError(`Failed to download data by originator: ${error.message}`)
       setIsDownloading(false)
       setDownloadType(null)
+      setProgressInfo(null)
     }
   }
   
@@ -298,11 +343,13 @@ const InterceptorDashboard = () => {
     try {
       setIsDownloading(true)
       setDownloadType('zip')
+      setProgressInfo({ operation: 'download', current: 0, total: 0, percent: 0 })
       
-      // Get all data from all types
-      const allData = Object.values(data).flat()
+      // Fetch data in batches
+      const allData = await fetchAllDataInBatches()
       
       DevLog(`Preparing to download data as zip (${allData.length} items)`)
+      setProgressInfo({ operation: 'download', current: allData.length, total: allData.length, percent: 100 })
       
       // Download data as a zip file with each originator as a separate JSON file
       await downloadAsZip(allData)
@@ -316,11 +363,81 @@ const InterceptorDashboard = () => {
       setTimeout(() => {
         setIsDownloading(false)
         setDownloadType(null)
+        setProgressInfo(null)
       }, 1000)
     }
   }
 
-  if (isLoading) {
+  // Helper function to fetch all data in batches
+  const fetchAllDataInBatches = async (batchSize = 500, customFilters?: Record<string, any>): Promise<TimedObjectWithCanSendToCA[]> => {
+    const allData: TimedObjectWithCanSendToCA[] = []
+    let currentPage = 1
+    let hasMoreData = true
+    
+    // Apply filters - either custom filters or current UI filters
+    const filters = customFilters || {
+      type: selectedType !== "all" ? selectedType : undefined,
+      canSendStatus: selectedCanSendStatus !== "all" 
+        ? selectedCanSendStatus === "yes" ? "true" : "false" 
+        : undefined,
+      reason: selectedReason !== "all" ? selectedReason : undefined
+    }
+    
+    DevLog("Starting batched data retrieval with filters:", filters)
+    
+    while (hasMoreData) {
+      DevLog(`Fetching batch ${currentPage}...`)
+      
+      const response: BackgroundResponse = await sendToBackground({
+        name: "get-all-intercepted-data",
+        body: {
+          ...filters,
+          page: currentPage,
+          pageSize: batchSize
+        }
+      })
+      
+      if (!response.success) {
+        throw new Error(response.error || "Failed to fetch data batch")
+      }
+      
+      const batchData = response.data
+      allData.push(...batchData)
+      
+      DevLog(`Retrieved ${batchData.length} items in batch ${currentPage}`)
+      
+      // Check if we've reached the end
+      if (batchData.length < batchSize || currentPage >= response.pagination.totalPages) {
+        hasMoreData = false
+        DevLog("All data retrieved, total items:", allData.length)
+      } else {
+        currentPage++
+      }
+      
+      // Update progress in the UI
+      if (response.pagination.totalCount > 0) {
+        const progress = Math.round((allData.length / response.pagination.totalCount) * 100)
+        DevLog(`Download progress: ${progress}% (${allData.length}/${response.pagination.totalCount})`)
+        setProgressInfo({ 
+          operation: 'download', 
+          current: allData.length, 
+          total: response.pagination.totalCount, 
+          percent: progress 
+        })
+      }
+    }
+    
+    return allData
+  }
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchData(newPage)
+    }
+  }
+
+  if (isLoading && !data.length) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -328,7 +445,7 @@ const InterceptorDashboard = () => {
     )
   }
 
-  const types = ["all", ...Object.keys(data)]
+  const types = ["all", ...Object.keys(overview.typeCounts || {})]
   const uniqueReasons = getUniqueReasons()
 
   return (
@@ -341,81 +458,100 @@ const InterceptorDashboard = () => {
         </div>
       )}
 
+      {/* Progress Indicator */}
+      {progressInfo && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
+          <div className="flex flex-col gap-2">
+            <div className="flex justify-between">
+              <span className="text-sm font-medium text-blue-700">
+                {progressInfo.operation === 'download' ? 'Downloading data' : 'Reprocessing items'}
+              </span>
+              <span className="text-sm text-blue-600">
+                {progressInfo.current} / {progressInfo.total} ({progressInfo.percent}%)
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{ width: `${progressInfo.percent}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Download Buttons */}
       <div className="mb-6 flex flex-wrap gap-4">
         <button
           onClick={handleDownloadAllData}
-          disabled={isDownloading || Object.keys(data).length === 0}
+          disabled={isDownloading || overview.totalRecords === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-            ${isDownloading || Object.keys(data).length === 0
+            ${isDownloading || overview.totalRecords === 0
               ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
               : 'bg-green-600 hover:bg-green-700'}`}>
           <FontAwesomeIcon 
             icon={faDownload} 
-            className={`h-4 w-4 ${downloadType === 'all' ? 'animate-spin' : ''}`} 
+            className={`h-4 w-4 ${downloadType === 'all' && !progressInfo ? 'animate-spin' : ''}`} 
           />
-          {downloadType === 'all' ? 'Downloading...' : 'Download All Data (Single File)'}
+          {downloadType === 'all' ? (
+            progressInfo ? `Downloading... ${progressInfo.percent}%` : 'Downloading...'
+          ) : 'Download All Data (Single File)'}
         </button>
         
         <button
           onClick={handleDownloadByOriginator}
-          disabled={isDownloading || Object.keys(data).length === 0}
+          disabled={isDownloading || overview.totalRecords === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-            ${isDownloading || Object.keys(data).length === 0
+            ${isDownloading || overview.totalRecords === 0
               ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+              : 'bg-indigo-600  hover:bg-indigo-700'}`}>
           <FontAwesomeIcon 
             icon={faDownload} 
-            className={`h-4 w-4 ${downloadType === 'byOriginator' ? 'animate-spin' : ''}`} 
+            className={`h-4 w-4 ${downloadType === 'byOriginator' && !progressInfo ? 'animate-spin' : ''}`} 
           />
-          {downloadType === 'byOriginator' ? 'Downloading...' : 'Download Latest By Originator ID'}
+          {downloadType === 'byOriginator' ? (
+            progressInfo ? `Downloading... ${progressInfo.percent}%` : 'Downloading...'
+          ) : 'Download Latest By Originator ID'}
         </button>
         
         <button
           onClick={handleDownloadAsZip}
-          disabled={isDownloading || Object.keys(data).length === 0}
+          disabled={isDownloading || overview.totalRecords === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-            ${isDownloading || Object.keys(data).length === 0
+            ${isDownloading || overview.totalRecords === 0
               ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-              : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+              : 'bg-purple-600 hover:bg-purple-700'}`}>
           <FontAwesomeIcon 
             icon={faFileZipper} 
-            className={`h-4 w-4 ${downloadType === 'zip' ? 'animate-spin' : ''}`} 
+            className={`h-4 w-4 ${downloadType === 'zip' && !progressInfo ? 'animate-spin' : ''}`} 
           />
-          {downloadType === 'zip' ? 'Creating Zip...' : 'Download Latest As Zip (By Originator)'}
+          {downloadType === 'zip' ? (
+            progressInfo ? `Creating Zip... ${progressInfo.percent}%` : 'Creating Zip...'
+          ) : 'Download Latest As Zip (By Originator)'}
         </button>
       </div>
 
       {/* Stats */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Object.entries(data).map(([type, items]) => {
-          const filteredItems = filterData(items)
-          return (
-            <div
-              key={type}
-              className={`${getTypeColor(
-                type
-              )} rounded-lg p-4 text-center shadow-sm`}>
-              <p className="text-sm font-medium text-gray-600">{type}</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {filteredItems.length}
-              </p>
-              <p className="text-xs text-gray-500">items</p>
-            </div>
-          )
-        })}
+        {Object.entries(overview.typeCounts || {}).map(([type, count]) => (
+          <div
+            key={type}
+            className={`${getTypeColor(type)} rounded-lg p-4 text-center shadow-sm`}>
+            <p className="text-sm font-medium text-gray-600">{type}</p>
+            <p className="text-2xl font-bold text-gray-800">{count}</p>
+            <p className="text-xs text-gray-500">items</p>
+          </div>
+        ))}
       </div>
 
       {/* Reprocess Buttons for Each Reprocessable Error */}
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mt-6 mb-6 flex flex-wrap gap-4">
         {uniqueReasons
           .filter(isReprocessableReason)
           .map(reason => {
             const isProcessing = processingReasons.has(reason)
-            const itemCount = Object.values(data)
-              .flat()
-              .filter(item => item.reason === reason)
-              .length
+            const itemCount = overview.reasonCounts[reason] || 0
+            const isCurrentlyProcessing = isProcessing && progressInfo?.operation === 'reprocess'
               
             return (
               <button
@@ -428,9 +564,13 @@ const InterceptorDashboard = () => {
                     : 'bg-blue-500 text-white hover:bg-blue-600'}`}>
                 <FontAwesomeIcon 
                   icon={faRotate} 
-                  className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} 
+                  className={`h-4 w-4 ${isProcessing && !progressInfo ? 'animate-spin' : ''}`} 
                 />
-                {isProcessing ? 'Processing...' : `Reprocess ${itemCount} items with "${reason}"`}
+                {isCurrentlyProcessing 
+                  ? `Processing... ${progressInfo.percent}%` 
+                  : isProcessing 
+                    ? 'Processing...' 
+                    : `Reprocess ${itemCount} items with "${reason}"`}
               </button>
             )
           })}
@@ -463,7 +603,6 @@ const InterceptorDashboard = () => {
               ))}
             </select>
           </div>
-
 
           {/* Can Send to CA Filter */}
           <div className="flex-1 min-w-[200px]">
@@ -507,13 +646,83 @@ const InterceptorDashboard = () => {
         </div>
       </div>
 
+      {/* Pagination Controls */}
+      {pagination.totalPages > 1 && (
+        <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <div className="text-sm text-gray-600">
+            Showing page {pagination.page} of {pagination.totalPages} ({pagination.totalCount} total items)
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1 || isLoading}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm
+                ${pagination.page === 1 || isLoading
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+              <FontAwesomeIcon icon={faChevronLeft} className="h-3 w-3" />
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages || isLoading}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm
+                ${pagination.page === pagination.totalPages || isLoading
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+              Next
+              <FontAwesomeIcon icon={faChevronRight} className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading indicator for data refresh */}
+      {isLoading && data.length > 0 && (
+        <div className="flex justify-center items-center my-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+        </div>
+      )}
+
       {/* Data Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(data).map(([type, items]) => {
-          const filteredItems = filterData(items)
-          return filteredItems.map((item) => renderDataCard(item))
-        })}
+        {data.map((item) => renderDataCard(item))}
       </div>
+
+      {/* Empty state */}
+      {data.length === 0 && !isLoading && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">No data found matching the current filters.</p>
+        </div>
+      )}
+
+      {/* Bottom Pagination Controls for convenience */}
+      {pagination.totalPages > 1 && data.length > 0 && (
+        <div className="flex justify-center mt-6">
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1 || isLoading}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm
+                ${pagination.page === 1 || isLoading
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+              <FontAwesomeIcon icon={faChevronLeft} className="h-3 w-3" />
+              Previous
+            </button>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages || isLoading}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-sm
+                ${pagination.page === pagination.totalPages || isLoading
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+              Next
+              <FontAwesomeIcon icon={faChevronRight} className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
