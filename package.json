@@ -46,6 +46,7 @@
     "dexie": "^4.0.10",
     "dexie-export-import": "^4.1.4",
     "dexie-react-hooks": "^1.1.7",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
     "plasmo": "0.90.3",
     "posthog-js": "^1.184.2",
