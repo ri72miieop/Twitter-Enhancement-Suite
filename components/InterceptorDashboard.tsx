@@ -1,5 +1,5 @@
 import { sendToBackground } from "@plasmohq/messaging"
-import { faFilter, faRotate } from "@fortawesome/free-solid-svg-icons"
+import { faFilter, faRotate, faDownload, faFileZipper } from "@fortawesome/free-solid-svg-icons"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { useEffect, useState } from "react"
 
@@ -7,7 +7,8 @@ import { indexDB, type TimedObject, type TimedObjectWithCanSendToCA } from "~uti
 import { DevLog } from "~utils/devUtils"
 import posthog from "~core/posthog"
 import { getUser } from "~utils/dbUtils"
-
+import { downloadDataAsJson, downloadDataByOriginator, downloadAsZip } from "~utils/zipUtils"
+import "~/prod.css"
 type GroupedData = {
   [key: string]: TimedObjectWithCanSendToCA[]
 }
@@ -26,6 +27,8 @@ const InterceptorDashboard = () => {
   const [selectedReason, setSelectedReason] = useState<string>("all")
   const [error, setError] = useState<string | null>(null)
   const [processingReasons, setProcessingReasons] = useState<Set<string>>(new Set())
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadType, setDownloadType] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -233,6 +236,90 @@ const InterceptorDashboard = () => {
     )
   }
 
+  // Function to handle downloading all data
+  const handleDownloadAllData = async () => {
+    try {
+      setIsDownloading(true)
+      setDownloadType('all')
+      
+      // Get all data from all types
+      const allData = Object.values(data).flat()
+      
+      DevLog(`Preparing to download all data (${allData.length} items)`)
+      
+      // Download all data as a single JSON file
+      downloadDataAsJson(allData)
+      
+      setError(null)
+    } catch (error) {
+      DevLog("Error downloading data:", error, "error")
+      setError(`Failed to download data: ${error.message}`)
+    } finally {
+      // Add a small delay before resetting the state to ensure the user sees the loading state
+      setTimeout(() => {
+        setIsDownloading(false)
+        setDownloadType(null)
+      }, 1000)
+    }
+  }
+  
+  // Function to handle downloading data by originator
+  const handleDownloadByOriginator = async () => {
+    try {
+      setIsDownloading(true)
+      setDownloadType('byOriginator')
+      
+      // Get all data from all types
+      const allData = Object.values(data).flat()
+      
+      DevLog(`Preparing to download data by originator (${allData.length} items)`)
+      
+      // Download data grouped by originator
+      downloadDataByOriginator(allData)
+      
+      setError(null)
+      
+      // Keep the loading state for a bit longer since downloads are staggered
+      setTimeout(() => {
+        DevLog("Download by originator process completed")
+        setIsDownloading(false)
+        setDownloadType(null)
+      }, 5000) // Give enough time for downloads to start
+    } catch (error) {
+      DevLog("Error downloading data by originator:", error, "error")
+      setError(`Failed to download data by originator: ${error.message}`)
+      setIsDownloading(false)
+      setDownloadType(null)
+    }
+  }
+  
+  // Function to handle downloading data as a zip file
+  const handleDownloadAsZip = async () => {
+    try {
+      setIsDownloading(true)
+      setDownloadType('zip')
+      
+      // Get all data from all types
+      const allData = Object.values(data).flat()
+      
+      DevLog(`Preparing to download data as zip (${allData.length} items)`)
+      
+      // Download data as a zip file with each originator as a separate JSON file
+      await downloadAsZip(allData)
+      
+      setError(null)
+    } catch (error) {
+      DevLog("Error downloading data as zip:", error, "error")
+      setError(`Failed to download data as zip: ${error.message}`)
+    } finally {
+      // Add a small delay before resetting the state to ensure the user sees the loading state
+      setTimeout(() => {
+        setIsDownloading(false)
+        setDownloadType(null)
+      }, 1000)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -254,7 +341,50 @@ const InterceptorDashboard = () => {
         </div>
       )}
 
-      
+      {/* Download Buttons */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        <button
+          onClick={handleDownloadAllData}
+          disabled={isDownloading || Object.keys(data).length === 0}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+            ${isDownloading || Object.keys(data).length === 0
+              ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700'}`}>
+          <FontAwesomeIcon 
+            icon={faDownload} 
+            className={`h-4 w-4 ${downloadType === 'all' ? 'animate-spin' : ''}`} 
+          />
+          {downloadType === 'all' ? 'Downloading...' : 'Download All Data (Single File)'}
+        </button>
+        
+        <button
+          onClick={handleDownloadByOriginator}
+          disabled={isDownloading || Object.keys(data).length === 0}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+            ${isDownloading || Object.keys(data).length === 0
+              ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+              : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>
+          <FontAwesomeIcon 
+            icon={faDownload} 
+            className={`h-4 w-4 ${downloadType === 'byOriginator' ? 'animate-spin' : ''}`} 
+          />
+          {downloadType === 'byOriginator' ? 'Downloading...' : 'Download Latest By Originator ID'}
+        </button>
+        
+        <button
+          onClick={handleDownloadAsZip}
+          disabled={isDownloading || Object.keys(data).length === 0}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
+            ${isDownloading || Object.keys(data).length === 0
+              ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
+              : 'bg-purple-600 text-white hover:bg-purple-700'}`}>
+          <FontAwesomeIcon 
+            icon={faFileZipper} 
+            className={`h-4 w-4 ${downloadType === 'zip' ? 'animate-spin' : ''}`} 
+          />
+          {downloadType === 'zip' ? 'Creating Zip...' : 'Download Latest As Zip (By Originator)'}
+        </button>
+      </div>
 
       {/* Stats */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
