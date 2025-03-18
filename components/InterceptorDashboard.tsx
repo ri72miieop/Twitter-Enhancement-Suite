@@ -9,6 +9,7 @@ import posthog from "~core/posthog"
 import { getUser } from "~utils/dbUtils"
 import { downloadDataAsJson, downloadDataByOriginator, downloadAsZip } from "~utils/zipUtils"
 import "~/prod.css"
+import { TwitterDataMapper } from "~InterceptorModules/utils/TwitterDataMapper"
 type GroupedData = {
   [key: string]: TimedObjectWithCanSendToCA[]
 }
@@ -232,6 +233,9 @@ const InterceptorDashboard = () => {
 
   const renderDataCard = (item: TimedObjectWithCanSendToCA) => {
     const isProcessing = item.reason && processingReasons.has(item.reason)
+    const mappedData = TwitterDataMapper.mapAll(item.data)
+    const tweet = mappedData[0].tweet;
+    const account = mappedData[0].account;
     
     return (
       <div
@@ -249,14 +253,16 @@ const InterceptorDashboard = () => {
         </div>
         <div className="space-y-1">
           <p className="text-sm">
-            <span className="font-medium">ID:</span> {item.item_id}
+            <span className="font-medium">Tweet ID:</span> <a href={`https://twitter.com/${account?.username || "u"}/status/${item.originator_id}`} target="_blank" rel="noopener noreferrer">{item.originator_id}</a>
           </p>
+          {tweet && (
+            <p className="text-sm">
+              <span className="font-medium">Tweet:</span> {tweet.full_text.length > 80 ? `${tweet.full_text.substring(0, 80)}...` : tweet.full_text}
+            </p>
+          )}
           <p className="text-sm">
-            <span className="font-medium">Originator:</span> {item.originator_id}
-          </p>
-          <p className="text-sm">
-            <span className="font-medium">User ID:</span>{" "}
-            {item.user_id || "Not available"}
+            <span className="font-medium">User:</span>{" "}
+            {account?.username|| "Not available"}
           </p>
           {item.canSendToCA !== undefined && (
             <p className="text-sm">
