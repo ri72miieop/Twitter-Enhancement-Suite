@@ -89,6 +89,13 @@ async function processInterceptedData(
     date_added
   })
 
+  if (data.includes('trusted_friends_info_result')){
+    await indexDB.data.update(recordId, {
+      canSendToCA: false,
+      reason: "[Current Data Policy] Tweet rejected because it might be a circle tweet."
+    })
+    return {success: false, reason: "[Current Data Policy] Tweet rejected because it might be a circle tweet."}
+  }
   const { data: dbData } = await supabase
     .from("temporary_data")
     .select("originator_id,item_id,timestamp")
