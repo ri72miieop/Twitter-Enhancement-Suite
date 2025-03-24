@@ -20,7 +20,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     
     // Fetch all data first
     // Start with the base query
-    let query = indexDB.data.toCollection()
+    let query = indexDB.data.toCollection().reverse()
     DevLog("__test__ Created base query from indexDB.data collection")
     
     // Build filter conditions
