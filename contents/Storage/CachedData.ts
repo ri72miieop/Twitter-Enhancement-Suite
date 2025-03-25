@@ -43,6 +43,7 @@ export interface PreferenceMetadata {
   preference: keyof TweetEnhancementPreferences;
   title: string;
   subtitle: string;
+  disableRequiresRefresh: boolean;
   isEnabled: boolean;
 }
 export class TweetEnhancementPreferencesManager {
@@ -66,42 +67,49 @@ export class TweetEnhancementPreferencesManager {
         preference: "obfuscateAllUsers",
         title: "Obfuscate All Users",
         subtitle: "Hide usernames and display names for all users",
+        disableRequiresRefresh: true,
         isEnabled: true
       },
       {
         preference: "showRelationshipBadges",
         title: "Show Relationship Badges",
         subtitle: "Display badges indicating your relationship with other users",
+        disableRequiresRefresh: true,
         isEnabled: true
       },
       {
         preference: "showOriginalPosterBadge",
         title: "Show Original Poster Badge",
         subtitle: "Highlight the original poster in thread discussions",
+        disableRequiresRefresh: true,
         isEnabled: true
       },
       {
         preference: "blurViralTweets",
         title: "Blur Viral Tweets",
         subtitle: "Blur tweets that have more than 100k likes",
+        disableRequiresRefresh: true,
         isEnabled: true
       },
       {
         preference: "enableSignalBoostingUrls",
         title: "Enable Signal Boosting URLs",
         subtitle: "Allow sharing links through signal boosting features",
+        disableRequiresRefresh: true,
         isEnabled: isDev
       },
       {
         preference: "enhanceLongTweetText",
         title: "Enhance Tweet with LongTweet Text",
         subtitle: "Stop clicking on 'Show more' to read long tweets, activate this to automatically expand long tweets",
+        disableRequiresRefresh: true,
         isEnabled: true
       },
       {
         preference: "scrapeData",
         title: "Scrape Data",
         subtitle: "Scrape data from X api responses and send them to Community Archive. This is useful to keep the archive as up to date as possible.",
+        disableRequiresRefresh: false,
         isEnabled: true
       }
     ];
