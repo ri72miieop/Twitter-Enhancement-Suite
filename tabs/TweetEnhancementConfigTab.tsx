@@ -1,31 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Switch } from '~components/ui/switch'
 import { GlobalCachedData, TweetEnhancementPreferencesManager, type PreferenceMetadata, type TweetEnhancementPreferences } from '~contents/Storage/CachedData'
 import { getUser } from '~utils/dbUtils'
 
 import { Toaster } from "@/components/ui/shadcn/sonner"
 import { toast } from "sonner"
+import { RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+
 
 import "~prod.css"
 
 function TweetEnhancementConfigTab() {
   const [preferences, setPreferences] = useState<TweetEnhancementPreferences>()
   const [user, setUser] = useState<{id: any, username: any} | null>(null)
-  const [preferencesMetadata] = useState(TweetEnhancementPreferencesManager.getPreferenceMetadata());
+  const [preferencesMetadata] = useState(()=>TweetEnhancementPreferencesManager.getPreferenceMetadata());
   useEffect(() => {
-    // Load saved preferences on mount
-    GlobalCachedData.GetEnhancementPreferences().then(savedPrefs => {
-      if (savedPrefs) {
-        setPreferences(savedPrefs)
+
+    const loadInitialData= async ()=>{
+      const [fetchedUser, savedPrefs] = await Promise.all([
+        getUser(),
+        GlobalCachedData.GetEnhancementPreferences(),
+      ]);
+
+      if(fetchedUser){
+        setUser(fetchedUser);
       }
-    })
-    getUser().then(user => {
-      if(!user) return
-      setUser(user)
-    })
+      if (savedPrefs) {
+        setPreferences(savedPrefs);
+      }
+    }
+    loadInitialData();
+
+    
   }, [])
 
-  const updatePreference = async (preferenceMetadata: PreferenceMetadata, value: boolean) => {
+  const updatePreference = useCallback(async (preferenceMetadata: PreferenceMetadata, value: boolean) => {
+    if (!preferences) return;
+    const originalPreferences = { ...preferences };
     const key: keyof TweetEnhancementPreferences = preferenceMetadata.preference as keyof TweetEnhancementPreferences
     const newPreferences = {
       ...preferences,
@@ -33,12 +44,23 @@ function TweetEnhancementConfigTab() {
     }
     setPreferences(newPreferences)
     if(preferenceMetadata.disableRequiresRefresh && value === false){
-      toast.warning("Please refresh the page to apply changes", {
-        id: "refresh-required-toast"
+      toast.info("Refresh the page to fully apply this change.", {
+        id: "refresh-required-toast",
+        dismissible:false,
+        duration: 12000
       });
     }
-    await GlobalCachedData.SaveEnhancementPreferences(newPreferences)
-  }
+    try {
+      await GlobalCachedData.SaveEnhancementPreferences(newPreferences);
+      // Optional: Show success toast on save if desired
+      // toast.success("Setting saved!");
+    } catch (err) {
+      console.error("Error saving preference:", err);
+      toast.error(`Failed to save setting for "${preferenceMetadata.title}". Please try again.`);
+      // --- Rollback UI on save failure ---
+      setPreferences(originalPreferences);
+    }
+  }, [preferences]);
 
   if(!user) return <div>Please sign in to send feedback</div>
 
@@ -50,7 +72,7 @@ function TweetEnhancementConfigTab() {
 
       <div className="space-y-4">
 
-    <Toaster />
+    <Toaster richColors />
     {preferencesMetadata && preferencesMetadata.filter(prefMetadata => prefMetadata.isEnabled).map((prefMetadata) => (
        <div id={prefMetadata.preference} className="flex items-center justify-between">
        <div>
@@ -58,18 +80,16 @@ function TweetEnhancementConfigTab() {
            {prefMetadata.title}
            {prefMetadata.disableRequiresRefresh && (
              <span className="text-amber-500 cursor-help" title="Requires page refresh when disabled">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                 <path d="M21 3v5h-5"></path>
-                 <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                 <path d="M8 16H3v5"></path>
-               </svg>
+               <RefreshCw size={16} /> 
              </span>
            )}
          </h3>
          <p className="text-sm text-gray-500">{prefMetadata.subtitle}</p>
        </div>
-       <Switch className={`bg-blue-600`} checked={preferences?.[prefMetadata.preference as keyof TweetEnhancementPreferences] ?? false} onCheckedChange={(checked) => updatePreference(prefMetadata, checked)} />
+       <Switch className={`bg-blue-600`} checked={preferences?.[prefMetadata.preference as keyof TweetEnhancementPreferences] ?? false} onCheckedChange={(checked) => updatePreference(prefMetadata, checked)} 
+        
+        aria-labelledby={`${prefMetadata.preference}-label`}/>
+        <span id={`${prefMetadata.preference}-label`} className="sr-only">{prefMetadata.title}</span>
      </div>
 
     ))}
