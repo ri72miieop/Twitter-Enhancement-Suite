@@ -301,8 +301,7 @@ export const TweetEnhancements = {
         try {
             const avatarContainer = tweetElement.querySelector('[data-testid^="UserAvatar-Container"]');
             const displayNameElement = tweetElement.querySelector('div[data-testid="User-Name"] a[role="link"]') as HTMLAnchorElement;
-            const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] span');
-            
+            const usernameElement = tweetElement.querySelector('div[data-testid="User-Name"] div:not([data-testid]) a[tabindex="-1"] span') as HTMLSpanElement;
             const quotedTweet = tweetElement.querySelector('div[class*="r-eqz5dr"][class*="r-jusfrs"]');
             DevLog("quotedTweet",quotedTweet)
             if(quotedTweet) {
