@@ -37,7 +37,9 @@ export interface TweetEnhancementPreferences {
   enableSignalBoostingUrls: boolean
   blurViralTweets: boolean
   enhanceLongTweetText: boolean,
-  scrapeData: boolean
+  scrapeData: boolean,
+  markTweetWithScrapeStatus: boolean,
+  findSimilarTweets: boolean
 }
 export interface PreferenceMetadata {
   preference: keyof TweetEnhancementPreferences;
@@ -54,7 +56,9 @@ export class TweetEnhancementPreferencesManager {
     enableSignalBoostingUrls: false,
     blurViralTweets: false,
     enhanceLongTweetText: true,
-    scrapeData: true
+    scrapeData: true,
+    markTweetWithScrapeStatus: false,
+    findSimilarTweets: false
   };
 
   static getDefaultPreferences(): TweetEnhancementPreferences {
@@ -111,7 +115,19 @@ export class TweetEnhancementPreferencesManager {
         subtitle: "Scrape data from X api responses and send them to Community Archive. This is useful to keep the archive as up to date as possible.",
         disableRequiresRefresh: false,
         isEnabled: true
-      }
+      },
+       {preference:"markTweetWithScrapeStatus",
+        title: "Mark status of tweet upload",
+        subtitle: "Mark tweets with a badge indicating if they have been correctly uploaded to the community archive or not",
+        disableRequiresRefresh: false,
+        isEnabled: true
+       },
+       {preference:"findSimilarTweets",
+        title: "Find similar tweets",
+        subtitle: "Do semantic search on the tweet to find tweets with similar vibe",
+        disableRequiresRefresh: false,
+        isEnabled: isDev
+       }
     ];
   }
 }
