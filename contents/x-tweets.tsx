@@ -30,10 +30,64 @@ export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
   return Array.from(anchors).map((element) => {
     return {
       element,
-      insertPosition: "beforebegin"
+      insertPosition: "afterend"
     }
   })
 }
+
+// Custom mount function to position our component side by side with tweets
+//export const mountShadowHost: PlasmoMountShadowHost = ({
+//  shadowHost,
+//  anchor,
+//  mountState
+//}) => {
+//  const article = anchor.element
+//  const tweetId = article.getAttribute("aria-labelledby") || "unknown-tweet"
+//  
+//  // Add ID to the shadowHost for easy identification in DevTools
+//  const hostElement = shadowHost as HTMLElement
+//  hostElement.id = `tweet-sidepanel-${tweetId}`
+//  
+//  // Position it absolutely within Twitter's layout
+//  // This is a more conservative approach that doesn't restructure the DOM
+//  hostElement.setAttribute('style', `
+//    position: fixed;
+//    right: -250px;
+//    height: 250px;
+//    width: 100px;
+//    background-color: white;
+//    padding: 10px;
+//    border-radius: 8px;
+//    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+//    z-index: 9999;
+//    overflow-y: auto;
+//    border: 1px solid #eee;
+//  `)
+//  
+//  // Use the default insertion position (afterend)
+//  article.insertAdjacentElement('afterend', shadowHost)
+//  
+//  // Add a CSS class for easy selection in DevTools
+//  hostElement.classList.add('plasmo-tweet-sidepanel')
+//  
+// // // Position the panel next to the article vertically when it's in view
+// // const updatePanelPosition = () => {
+// //   const rect = article.getBoundingClientRect()
+// //   if (rect.top < window.innerHeight && rect.bottom > 0) {
+// //     hostElement.style.top = `${rect.top}px`
+// //     hostElement.style.display = 'block'
+// //   } else {
+// //     hostElement.style.display = 'none'
+// //   }
+// // }
+// // 
+// // // Update position initially and on scroll
+// // updatePanelPosition()
+// // window.addEventListener('scroll', updatePanelPosition)
+//  
+//  // Clean up event listener when extension is unloaded
+//  mountState.observer.observe(shadowHost, { childList: true, subtree: true })
+//}
 
 export const config: PlasmoCSConfig = {
   matches: ["https://*.x.com/*"],
@@ -70,8 +124,11 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const tweetData = scrapeTweet(tweetElement)
   const currentUrl = window.location.href
 
+
   const isSpecificTweetPage = currentUrl.includes("/status/");
   const openXUsername = extractXUsername(currentUrl)
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
 
   const [userRelationshipStatus, setUserRelationshipStatus] = useState({
     isMutual: false,
@@ -178,9 +235,10 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     // Viral tweets blur
     if (preferences.blurViralTweets && tweetData.engagement.likes > 100000) {
       TweetEnhancements.enhanceHighEngagementTweet(tweetElement)
-    } else {
-      TweetEnhancements.removeHighEngagementTweet(tweetElement)
     }
+    ///else {
+    ///  TweetEnhancements.removeHighEngagementTweet(tweetElement)
+    ///}
 
     // Relationship badges
     if (preferences.showRelationshipBadges && userRelationshipStatus) {
@@ -191,11 +249,12 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       } else if (userRelationshipStatus.isFollower) {
         TweetEnhancements.enhanceFollowerTweet(tweetElement)
       }
-    } else {
-      TweetEnhancements.removeMutualTweetEnhancements(tweetElement)
-      TweetEnhancements.removeFollowingTweetEnhancements(tweetElement)
-      TweetEnhancements.removeFollowerTweetEnhancements(tweetElement)
-    }
+    } 
+    ///else {
+    ///  TweetEnhancements.removeMutualTweetEnhancements(tweetElement)
+    ///  TweetEnhancements.removeFollowingTweetEnhancements(tweetElement)
+    ///  TweetEnhancements.removeFollowerTweetEnhancements(tweetElement)
+    ///}
 
     // Signal boosting URLs
     if (preferences.enableSignalBoostingUrls) {
@@ -207,23 +266,26 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
           boosted_by: user.id
         })
       })
-    } else {
-      TweetEnhancements.removeSignalBoostingUrls(tweetElement)
     }
+    // else {
+    //  TweetEnhancements.removeSignalBoostingUrls(tweetElement)
+    //}
 
     // User obfuscation
     if (userId && preferences.obfuscateAllUsers) {
       TweetEnhancements.obfuscateUser(tweetElement)
-    } else {
-      TweetEnhancements.removeObfuscation(tweetElement)
-    }
+    } 
+    // else {
+    //  TweetEnhancements.removeObfuscation(tweetElement)
+    //}
 
     // Original poster badge
     if (preferences.showOriginalPosterBadge && openXUsername === tweetData.author.handle) {
       TweetEnhancements.enhanceOriginalPoster(tweetElement)
-    } else {
-      TweetEnhancements.removeOriginalPosterEnhancements(tweetElement)
-    }
+    } 
+    ///else {
+    ///  TweetEnhancements.removeOriginalPosterEnhancements(tweetElement)
+    ///}
 
     // Long tweet text enhancement
     if (preferences.enhanceLongTweetText && 
@@ -231,15 +293,90 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
         interceptedTweet.tweet.full_text.length > 280 && 
         isSpecificTweetPage) {
       TweetEnhancements.enhanceTweetWithLongTweetText(tweetElement, interceptedTweet.tweet.full_text)
-    } else {
-      TweetEnhancements.removeLongTweetText(tweetElement)
-    }
+    } 
+    ///else {
+    ///  TweetEnhancements.removeLongTweetText(tweetElement)
+    ///}
   }, [preferences, tweetElement, userRelationshipStatus, interceptedTweet, userId])
 
   //TweetEnhancements.applyTextModifiers(tweetElement)
 
   //NotEndorsedAnymore(tweetElement)
-  return(<></>);
+
+
+  const handleSearch = async () => {
+    try {
+      const response = await fetch('https://twowtter.com:8888/search/text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          collection: "tweets",
+          "top-k": 2,
+          text: interceptedTweet?.tweet?.full_text ?? tweetData.content
+        })
+      });
+      const data = await response.json();
+      console.log(data.matches)
+      setSearchResults(data.matches);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Error searching tweets:', error);
+    }
+  };
+
+  return (<>
+  {(preferences?.findSimilarTweets) && (
+      <div
+        style={{
+          position: 'relative',
+          opacity: 0,
+          transition: 'opacity 0.3s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+      >
+        <button
+          onClick={handleSearch}
+          style={{
+            backgroundColor: '#1DA1F2',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+          Search Similar Tweets
+        </button>
+        {showResults && (
+          <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#f7f7f7', borderRadius: '10px'}}>
+            {searchResults.map((result, index) => (
+              <div key={index} style={{marginBottom: '8px', padding: '8px', backgroundColor: 'white', borderRadius: '8px'}}>
+                {result.metadata.username}: {result.metadata.full_text}
+                <br />
+                <a href={`https://x.com/${result.metadata.username}/status/${result.metadata.tweet_id}`} target="_blank" rel="noopener noreferrer">{result.metadata.tweet_id}</a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+    {preferences?.markTweetWithScrapeStatus && interceptedTweet &&(
+      <div style={{ width: '100%' }}>
+        <p style={{ textAlign: 'right', paddingRight: '16px' }}>
+          {interceptedTweet.canSendToCA && interceptedTweet.timestamp !== null ? (
+            <span style={{ color: 'green', fontWeight: 'bold' }}>✓</span>
+          ) : (
+            <span style={{ color: 'red', fontWeight: 'bold' }}>✗ - {interceptedTweet.reason} - {interceptedTweet.timestamp} - {interceptedTweet.date_added}</span>
+          )}
+        </p>
+      </div>
+    )}
+    </>
+  );
   return (
     <>
       {(userRelationshipStatus.isMutual ||
