@@ -104,7 +104,7 @@ export class TweetEnhancementPreferencesManager {
       },
       {
         preference: "enhanceLongTweetText",
-        title: "Enhance Tweet with LongTweet Text",
+        title: "Auto-expand LongTweets text",
         subtitle: "Stop clicking on 'Show more' to read long tweets, activate this to automatically expand long tweets",
         disableRequiresRefresh: true,
         isEnabled: true
