@@ -1,7 +1,8 @@
-import { extractDataFromResponse, extractTimelineTweet } from "~utils/twe_utils";
+import { extractDataFromResponse, extractTimelineTweet, isTimelineEntryConversationThread, isTimelineEntryHomeConversationThread, isTimelineEntryTweet } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
-import type { TimelineInstructions, Tweet } from "./types";
 import { DevLog } from "~utils/devUtils";
+import type { TimelineAddEntriesInstruction, TimelineInstructions, TimelineTweet, Tweet } from "./types";
+
 
 
 interface HomeTimelineResponse {
@@ -24,11 +25,42 @@ export const HomeTimelineInterceptor: Interceptor = (req, res) => {
   }
 
   try {
-    const newData = extractDataFromResponse<HomeTimelineResponse, Tweet>(
-      res,
-      (json) => json.data.home.home_timeline_urt.instructions,
-      (entry) => extractTimelineTweet(entry.content.itemContent),
-    );
+
+    const json: HomeTimelineResponse = JSON.parse(res.responseText);
+    const instructions = json.data.home.home_timeline_urt.instructions;
+
+    const newData: Tweet[] = [];
+
+    const timelineAddEntriesInstruction = instructions.find(
+      (i) => i.type === 'TimelineAddEntries',
+    ) as TimelineAddEntriesInstruction<TimelineTweet>;
+
+    // When loading more tweets in conversation, the "TimelineAddEntries" instruction may not exist.
+    const timelineAddEntriesInstructionEntries = timelineAddEntriesInstruction?.entries ?? [];
+
+    for (const entry of timelineAddEntriesInstructionEntries) {
+      // The main tweet.
+      if (isTimelineEntryTweet(entry)) {
+        const tweet = extractTimelineTweet(entry.content.itemContent);
+        if (tweet) {
+          newData.push(tweet);
+        }
+      }
+
+      // The conversation thread.
+      if (isTimelineEntryHomeConversationThread(entry)) {
+        const tweetsInConversation = entry.content.items.map((i) => {
+          if (i.entryId.includes('-tweet-')) {
+            return extractTimelineTweet(i.item.itemContent)
+          }
+        })
+
+        newData.push(...tweetsInConversation.filter((t): t is Tweet => !!t));
+      }
+    }
+
+
+
     DevLog("Interceptor.function - HomeTimelineInterceptor: ", newData.length)
     
     // Dispatch a custom event
