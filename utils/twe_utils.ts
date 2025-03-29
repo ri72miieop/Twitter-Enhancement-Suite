@@ -167,6 +167,15 @@ import type { ItemContentUnion, Media, TimelineAddEntriesInstruction, TimelineEn
     );
   }
   
+  export function isTimelineEntryHomeConversationThread(
+    entry: TimelineEntry,
+  ): entry is TimelineEntry<TimelineTweet, TimelineTimelineModule<TimelineTweet>> {
+    return (
+      isTimelineEntryModule<TimelineTweet>(entry) &&
+      entry.entryId.startsWith('home-conversation-') &&
+      Array.isArray(entry.content.items)
+    );
+  }
   /*
   |--------------------------------------------------------------------------
   | Object extractors.
