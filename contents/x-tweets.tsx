@@ -215,18 +215,30 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   // Load intercepted tweet
   useEffect(() => {
     const loadInterceptedTweet = async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      if(!tweetData.id) return;
+      await new Promise(resolve => setTimeout(resolve, 3000))
       const response = await sendToBackground({
         name: "get-intercepted-tweet",
         body: {
           originator_id: tweetData.id
         }
       })
+      
+      if(isDev){
+      const insertedDate = response.timestamp;
+      const processedDate = response.date_added;
+      if (!insertedDate && !processedDate) {
+        const { error } = await supabase.from("no_show").upsert({tweet_id: tweetData.id})
+              if (error) {
+                DevLog("Error inserting no_show:" + error, "error")
+              }
+          }
+        }
       setInterceptedTweet(response)
     }
 
     loadInterceptedTweet()
-  }, [tweetData.id])
+  }, [tweetData])
 
   // Apply enhancements based on preferences
   useEffect(() => {
