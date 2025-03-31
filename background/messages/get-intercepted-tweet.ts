@@ -20,6 +20,11 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
     DevLog(`Interceptor.background.message.${req.body.originator_id} - get-intercepted-tweet: Existing records:`,JSON.stringify(existingRecords))
 
+    if(existingRecords.length === 0){
+      res.send({ success: false, error: "No records found" })
+      return
+    }
+
     const tweetRecord = existingRecords[0]
 
     const items = TwitterDataMapper.mapAll(tweetRecord.data)
