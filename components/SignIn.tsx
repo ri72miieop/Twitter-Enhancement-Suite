@@ -207,7 +207,11 @@ const SignIn = () => {
                 <Button
                   variant="secondary"
                   className="w-full"
-                  onClick={handleCacheReset}
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to reset the cache? This will clear all locally stored data.")) {
+                      handleCacheReset();
+                    }
+                  }}
                   loading={loading}
                 >
                   Reset Cache
