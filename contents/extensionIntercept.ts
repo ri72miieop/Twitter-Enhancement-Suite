@@ -3,7 +3,7 @@ import type { PlasmoCSConfig } from "plasmo"
 import { sendToBackground } from "@plasmohq/messaging"
 
 import { getUser, type UserMinimal } from "~utils/dbUtils"
-import { DevLog } from "~utils/devUtils"
+import { DevLog, isDev } from "~utils/devUtils"
 
 import { GlobalCachedData } from "./Storage/CachedData"
 
@@ -48,6 +48,34 @@ async function init() {
       }
     }
   )
+
+
+  if(isDev){
+    window.addEventListener("send-to-storage", async (event: CustomEvent<SendToStorageEventProps>) => {
+      const filename = event.detail.filename
+      const rawJson = event.detail.rawJson
+
+      try{
+        const response = await sendToBackground({
+          name: "send-to-storage",
+          body: {
+            filename: filename,
+            rawJson: rawJson
+          }
+        })
+      } catch (error) {
+        console.error(
+          "Interceptor.extension.event.send-to-storage - Error sending data to background:",
+          error
+        )
+      } 
+  })}
 }
 
 init()
+
+
+export interface SendToStorageEventProps {
+  filename: string
+  rawJson: string
+}
