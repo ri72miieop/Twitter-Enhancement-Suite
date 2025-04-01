@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react'
+import posthog from '~core/posthog'
 import { DevLog } from '~utils/devUtils'
 
 interface Props {
@@ -28,6 +29,11 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({
       error,
       errorInfo
+    })
+    posthog.capture("error", {
+      source: "error-boundary",
+      error: error.message,
+      errorInfo: errorInfo.componentStack
     })
     
     DevLog(error, errorInfo)
