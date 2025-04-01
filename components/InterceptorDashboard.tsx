@@ -172,41 +172,54 @@ const InterceptorDashboard = () => {
       
       // Process each item with progress tracking
       let processedCount = 0
-      for (const item of itemsToReprocess) {
-        const response = await sendToBackground({
-          name: "send-intercepted-data",
-          body: {
-            originator_id: item.originator_id,
-            item_id: item.item_id,
-            type: item.type,
-            data: item.data,
-            userid: item.user_id,
-            date_added: item.date_added
+      // Process items in batches of 10 in parallel
+      const batchSize = 100;
+      for (let i = 0; i < itemsToReprocess.length; i += batchSize) {
+        const batch = itemsToReprocess.slice(i, i + batchSize);
+        
+        // Process batch in parallel
+        const results = await Promise.all(
+          batch.map(item => 
+            sendToBackground({
+              name: "send-intercepted-data",
+              body: {
+                originator_id: item.originator_id,
+                item_id: item.item_id,
+                type: item.type,
+                data: item.data,
+                userid: item.user_id,
+                date_added: item.date_added
+              }
+            })
+          )
+        );
+        
+        // Process results
+        results.forEach((response, index) => {
+          const item = batch[index];
+          
+          if (!response.success && isReprocessableReason(response.error)) {
+            posthog.capture("reprocess_error", {
+              user_id: user?.id??"anon",
+              error: response.error,
+              data: item,
+              timestamp: new Date().toISOString()
+            });
           }
-        })
+          
+          DevLog("Reprocessed item:", item, "Success:", response.success);
+        });
         
-        if (!response.success && isReprocessableReason(response.error)) {
-          posthog.capture("reprocess_error", {
-            user_id: user?.id??"anon",
-            error: response.error,
-            data: item,
-            timestamp: new Date().toISOString()
-          })
-        }
-
-        processedCount++
-        if (processedCount % 10 === 0 || processedCount === itemsToReprocess.length) {
-          const progress = Math.round((processedCount / itemsToReprocess.length) * 100)
-          DevLog(`Reprocessing progress: ${progress}% (${processedCount}/${itemsToReprocess.length})`)
-          setProgressInfo({ 
-            operation: 'reprocess', 
-            current: processedCount, 
-            total: itemsToReprocess.length, 
-            percent: progress 
-          })
-        }
-        
-        DevLog("Reprocessed item:", item, "Success:", response.success)
+        // Update processed count and progress
+        processedCount += batch.length;
+        const progress = Math.round((processedCount / itemsToReprocess.length) * 100);
+        DevLog(`Reprocessing progress: ${progress}% (${processedCount}/${itemsToReprocess.length})`);
+        setProgressInfo({ 
+          operation: 'reprocess', 
+          current: processedCount, 
+          total: itemsToReprocess.length, 
+          percent: progress 
+        });
       }
       
       // Refresh data after successful reprocessing
@@ -233,9 +246,11 @@ const InterceptorDashboard = () => {
 
   const renderDataCard = (item: TimedObjectWithCanSendToCA) => {
     const isProcessing = item.reason && processingReasons.has(item.reason)
-    const mappedData = TwitterDataMapper.mapAll(item.data)
-    const tweet = mappedData[0].tweet;
-    const account = mappedData[0].account;
+    const mappedData = item.type.includes("notification") ? item.data : TwitterDataMapper.mapAll(item.data)
+    const tweet = item.type.includes("notification") ? item.data : mappedData[0].tweet;
+    const account = item.type.includes("notification") ? item.originator_id : mappedData[0].account;
+
+    const tweetText = item.type.includes("notification") ? item.data : mappedData[0].tweet.full_text;
     
     return (
       <div
@@ -257,7 +272,7 @@ const InterceptorDashboard = () => {
           </p>
           {tweet && (
             <p className="text-sm">
-              <span className="font-medium">Tweet:</span> {tweet.full_text.length > 80 ? `${tweet.full_text.substring(0, 80)}...` : tweet.full_text}
+              <span className="font-medium">Tweet:</span> {tweetText.length > 80 ? `${tweetText.substring(0, 80)}...` : tweetText}
             </p>
           )}
           <p className="text-sm">
@@ -309,41 +324,7 @@ const InterceptorDashboard = () => {
       }, 1000)
     }
   }
-  
-  // Function to handle downloading data by originator
-  const handleDownloadByOriginator = async () => {
-    try {
-      setIsDownloading(true)
-      setDownloadType('byOriginator')
-      setProgressInfo({ operation: 'download', current: 0, total: 0, percent: 0 })
-      
-      // Fetch data in batches
-      const allData = await fetchAllDataInBatches()
-      
-      DevLog(`Preparing to download data by originator (${allData.length} items)`)
-      setProgressInfo({ operation: 'download', current: allData.length, total: allData.length, percent: 100 })
-      
-      // Download data grouped by originator
-      downloadDataByOriginator(allData)
-      
-      setError(null)
-      
-      // Keep the loading state for a bit longer since downloads are staggered
-      setTimeout(() => {
-        DevLog("Download by originator process completed")
-        setIsDownloading(false)
-        setDownloadType(null)
-        setProgressInfo(null)
-      }, 5000) // Give enough time for downloads to start
-    } catch (error) {
-      DevLog("Error downloading data by originator:", error, "error")
-      setError(`Failed to download data by originator: ${error.message}`)
-      setIsDownloading(false)
-      setDownloadType(null)
-      setProgressInfo(null)
-    }
-  }
-  
+    
   // Function to handle downloading data as a zip file
   const handleDownloadAsZip = async () => {
     try {
@@ -504,21 +485,6 @@ const InterceptorDashboard = () => {
           ) : 'Download All Data (Single File)'}
         </button>
         
-        <button
-          onClick={handleDownloadByOriginator}
-          disabled={isDownloading || overview.totalRecords === 0}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium
-            ${isDownloading || overview.totalRecords === 0
-              ? 'bg-gray-300 text-gray-600 cursor-not-allowed' 
-              : 'bg-indigo-600  hover:bg-indigo-700'}`}>
-          <FontAwesomeIcon 
-            icon={faDownload} 
-            className={`h-4 w-4 ${downloadType === 'byOriginator' && !progressInfo ? 'animate-spin' : ''}`} 
-          />
-          {downloadType === 'byOriginator' ? (
-            progressInfo ? `Downloading... ${progressInfo.percent}%` : 'Downloading...'
-          ) : 'Download Latest By Originator ID'}
-        </button>
         
         <button
           onClick={handleDownloadAsZip}
@@ -533,7 +499,7 @@ const InterceptorDashboard = () => {
           />
           {downloadType === 'zip' ? (
             progressInfo ? `Creating Zip... ${progressInfo.percent}%` : 'Creating Zip...'
-          ) : 'Download Latest As Zip (By Originator)'}
+          ) : 'Download Latest As Zip (By Tweet ID)'}
         </button>
       </div>
 
