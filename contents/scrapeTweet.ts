@@ -1,3 +1,5 @@
+import { DevLog } from "~utils/devUtils";
+
 export interface ScrapedTweet {
     id: string;
     author: {
@@ -62,8 +64,12 @@ export interface ScrapedTweet {
     const tweetLink = tweetLinks[tweetLinks.length - 1]?.getAttribute('href') || '';
     const tweetId = tweetLink.split('/status/')[1]?.split(/[^0-9]/)[0] || '';
     
+    const typeOfArticle = tweetElement.attributes.getNamedItem("data-testid")?.value
+
     if (!tweetId) {
-      console.error("Could not extract tweet ID");
+      if(typeOfArticle === "tweet") {
+        console.error("Could not extract tweet ID");
+      }
       return null;
     }
   
