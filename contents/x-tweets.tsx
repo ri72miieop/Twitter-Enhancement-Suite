@@ -6,7 +6,7 @@ import type {
   PlasmoGetShadowHostId,
   PlasmoMountShadowHost
 } from "plasmo"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { useStorage } from "@plasmohq/storage/hook"
 
@@ -123,9 +123,11 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
   const tweetElement = parentElement.querySelector("article")
   const tweetData = scrapeTweet(tweetElement)
   const currentUrl = window.location.href
+  if(!tweetData) return null
 
-
+  const processedTweetIds = useRef(new Set());
   const isSpecificTweetPage = currentUrl.includes("/status/");
+  const isNotificationPage = currentUrl.includes("/notifications");
   const openXUsername = extractXUsername(currentUrl)
   const [searchResults, setSearchResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
@@ -212,33 +214,76 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
     checkRelationships()
   }, [userId, preferences?.showRelationshipBadges, interceptedTweet])
 
-  // Load intercepted tweet
-  useEffect(() => {
-    const loadInterceptedTweet = async () => {
-      if(!tweetData.id) return;
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      const response = await sendToBackground({
+
+  const loadInterceptedTweet = async () => {
+    if (!tweetData.id || processedTweetIds.current.has(tweetData.id)) return;
+    const MAX_RETRIES = 5;
+    let retryCount = 0;
+    let response;
+    
+    while (retryCount < MAX_RETRIES) {
+      await new Promise(resolve => setTimeout(resolve, retryCount === 0 ? 1000 : 4000));
+      
+      response = await sendToBackground({
         name: "get-intercepted-tweet",
         body: {
           originator_id: tweetData.id
         }
-      })
+      });
       
-      if(isDev){
-      const insertedDate = response.timestamp;
-      const processedDate = response.date_added;
-      if (!insertedDate && !processedDate) {
-        const { error } = await supabase.from("no_show").upsert({tweet_id: tweetData.id})
-              if (error) {
-                DevLog("Error inserting no_show:" + error, "error")
-              }
-          }
-        }
-      setInterceptedTweet(response)
+      if (response.success) {
+        setInterceptedTweet(response);
+        break;
+      }
+      
+      retryCount++;
+      DevLog(`Retry ${retryCount}/${MAX_RETRIES} for tweet ${tweetData.id}`);
+    }
+    
+    if (response?.success && response.date_added) {
+      processedTweetIds.current.add(tweetData.id);
+    }
+    if(retryCount == MAX_RETRIES){
+      DevLog("Failed to load intercepted tweet:" + tweetData.id, "error")
+      setInterceptedTweet({
+        success: false,
+        reason: "Failed to load intercepted tweet"
+      })
     }
 
-    loadInterceptedTweet()
-  }, [tweetData])
+    
+    if(isDev){
+    const insertedDate = response.timestamp;
+    const processedDate = response.date_added;
+    if (!insertedDate && !processedDate) {
+      const { error } = await supabase.from("no_show").upsert({tweet_id: tweetData.id})
+            if (error) {
+              DevLog("Error inserting no_show:" + error, "error")
+            }
+        }
+      }
+  }
+
+  // Load intercepted tweet
+  useEffect(() => {
+    // Only load intercepted tweet if the tweet element is visible in the viewport
+    if (tweetElement && tweetData.id) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            loadInterceptedTweet();
+            observer.disconnect(); // Only need to load once when it becomes visible
+          }
+        });
+      }, { threshold: 0.1 }); // Trigger when at least 10% of the tweet is visible
+      
+      observer.observe(tweetElement);
+      
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [tweetData, tweetElement])
 
   // Apply enhancements based on preferences
   useEffect(() => {
@@ -376,13 +421,19 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
         )}
       </div>
     )}
-    {preferences?.markTweetWithScrapeStatus && interceptedTweet &&(
+    {preferences?.markTweetWithScrapeStatus && interceptedTweet && !isNotificationPage &&(
       <div style={{ width: '100%' }}>
         <p style={{ textAlign: 'right', paddingRight: '16px' }}>
           {interceptedTweet.canSendToCA && interceptedTweet.timestamp !== null ? (
             <span style={{ color: 'green', fontWeight: 'bold' }}>✓</span>
           ) : (
-            <span style={{ color: 'red', fontWeight: 'bold' }}>✗ - {interceptedTweet.reason} - {interceptedTweet.timestamp} - {interceptedTweet.date_added}</span>
+            <span 
+              style={{ color: 'red', fontWeight: 'bold', cursor: 'pointer' }} 
+              onClick={() => loadInterceptedTweet()}
+              title="Click to recheck status"
+            >
+              ✗ - {interceptedTweet.reason} - {interceptedTweet.timestamp} - {interceptedTweet.date_added}
+            </span>
           )}
         </p>
       </div>
