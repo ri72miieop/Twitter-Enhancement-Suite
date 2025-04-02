@@ -244,7 +244,7 @@ const XTweet = ({ anchor }: PlasmoCSUIProps) => {
       processedTweetIds.current.add(tweetData.id);
     }
     if(retryCount == MAX_RETRIES){
-      DevLog("Failed to load intercepted tweet:" + tweetData.id, "error")
+      DevLog("Failed to load intercepted tweet:" + tweetData.id, "warn")
       setInterceptedTweet({
         success: false,
         reason: "Failed to load intercepted tweet"

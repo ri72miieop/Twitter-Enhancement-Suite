@@ -1,7 +1,7 @@
 {
   "name": "twitter-enhancement-suite",
   "displayName": "TES: Twitter Enhancement Suite",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "An extension to enhance your Twitter experience.",
   "author": "IaimforGOAT",
   "scripts": {
