@@ -36,12 +36,15 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
       req.body.userid,
       req.body.date_added
     )
-    
+    let resObject;
     if (result.success) {
-      res.send({ success: true })
+      resObject = { success: true }
     } else {
-      res.send({ success: false, error: result.reason })
+      resObject = { success: false, error: result.reason }
     }
+    DevLog("Interceptor.background.message - send-intercepted-data: result of sending intercepted data to IndexDB:", resObject)
+    res.send(resObject)
+
   } catch (error) {
     DevLog(`Error processing ${type}: ${error.message}`, "error")
     res.send({ success: false, error: error.message })
@@ -88,14 +91,16 @@ async function processInterceptedData(
     canSendToCA: canScrape && canSendToCA,
     date_added
   })
-
-  if (data.includes('trusted_friends_info_result')){
+  const jsonData = JSON.stringify(data);
+  if (jsonData.includes('trusted_friends_info_result')){
+    const errorMsg = "[Current Data Policy] Tweet rejected because it might be a circle tweet.";
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: "[Current Data Policy] Tweet rejected because it might be a circle tweet."
+      reason: errorMsg
     })
-    return {success: false, reason: "[Current Data Policy] Tweet rejected because it might be a circle tweet."}
+    return {success: false, reason: errorMsg}
   }
+
   const { data: dbData } = await supabase
     .from("temporary_data")
     .select("originator_id,item_id,timestamp")
@@ -123,11 +128,12 @@ async function processInterceptedData(
     new Date(dbData[0].timestamp).getTime() > new Date(date_added).getTime()
   ) {
     DevLog(`Record is more recent than the one we are trying to (re)process, skipping: ${originator_id}`)
+    const errorMsg = "[Current Data Policy] This record is outdated and a more recent record already exists.";
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: "[Current Data Policy] This record is outdated and a more recent record already exists."
+      reason: errorMsg
     })
-    return {success: false, reason: "[Current Data Policy] This record is outdated and a more recent record already exists."}
+    return {success: false, reason: errorMsg}
   }
 
 
@@ -139,11 +145,12 @@ async function processInterceptedData(
     new Date(dbData[0].timestamp).getTime() > expiryTime
   ) {
     DevLog(`Record is too recent in DB, skipping: ${originator_id}`)
+    const errorMsg = "[Current Data Policy] This record was already sent recently.";
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: "[Current Data Policy] This record was already sent recently."
+      reason: errorMsg
     })
-    return {success: false, reason: "[Current Data Policy] This record was already sent recently."}
+    return {success: false, reason: errorMsg}
   }
 
   
@@ -151,12 +158,12 @@ async function processInterceptedData(
   if (!canScrape || !canSendToCA) {
     DevLog("User blocked from scraping or cannot send to CA")
     DevLog("user preferences: " + JSON.stringify(userpreferences) + " canSendToCA " + canSendToCA + " canScrape " + canScrape)
+    const errorMsg = canScrape ? "User has disabled sending data to CA" : "User blocked from scraping";
     await indexDB.data.update(recordId, {
       canSendToCA: false,
-      reason: canScrape ? "User has disabled sending data to CA" : "User blocked from scraping"
+      reason: errorMsg
     })
-
-    return {success: false, reason: canScrape ? "User has disabled sending data to CA" : "User blocked from scraping"}
+    return {success: false, reason: errorMsg}
   }
 
   // Create record with current timestamp
@@ -193,8 +200,20 @@ async function processInterceptedData(
 
       if (error) {
         DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
-        await indexDB.data.update(recordId, { canSendToCA: false, reason: "Error uploading to Supabase" })
-        return {success: false, reason: `Error uploading to Supabase: ${error.message}`}
+        const errorMsg = `Error uploading to Supabase`;
+        await indexDB.data.update(recordId, { canSendToCA: false, reason: errorMsg })
+        
+        posthog.capture("error-upload", {
+          error: error.details,
+          errorCode: `error.${error.code}`,
+          errorHint: error.hint,
+          type: recordToProcess.type,
+          originator_id: recordToProcess.originator_id,
+          item_id: recordToProcess.item_id,
+          userId: recordToProcess.user_id,
+          timestamp: recordToProcess.timestamp
+        })
+        return {success: false, reason: errorMsg}
       }
       // Update IndexDB with processed timestamp
       await indexDB.data.update(recordId, { timestamp })
@@ -205,8 +224,21 @@ async function processInterceptedData(
     }
   } catch (error) {
     DevLog(`Error uploading to Supabase: ${error.message}`, "warn")
-    await indexDB.data.update(recordId, { canSendToCA: false, reason: "Error uploading to Supabase" })
-    return {success: false, reason: `Error uploading to Supabase: ${error.message}`}
+    const errorMsg = "Error uploading to Supabase";
+    await indexDB.data.update(recordId, { canSendToCA: false, reason: errorMsg })
+
+
+    posthog.capture("error-upload", {
+      error: error.message,
+      errorCode: `${Date.now()}_${recordToProcess.user_id}`,
+      type: recordToProcess.type,
+      originator_id: recordToProcess.originator_id,
+      item_id: recordToProcess.item_id,
+      userId: recordToProcess.user_id,
+      timestamp: recordToProcess.timestamp
+    })
+
+    return {success: false, reason: errorMsg}
   }
 
   DevLog(`Successfully processed data for: ${originator_id}`)
@@ -268,6 +300,9 @@ async function isValidUserMentioned(userId: string) {
 async function processType(type: string, data: any, hashed_userid: string) {
   try {
     switch (type) {
+      case "api_notifications":
+        DevLog("Interceptor.background.process.notifications - Processing notifications:" + JSON.stringify(data))
+        break
       case "api_tweet-detail":
       case "api_home-timeline":
       case "api_user-tweets":
