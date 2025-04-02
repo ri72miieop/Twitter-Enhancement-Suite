@@ -10,6 +10,7 @@ interface State {
   hasError: boolean
   error?: Error
   errorInfo?: ErrorInfo
+  errorId?: string
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -25,18 +26,43 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
+  // Generate a unique error ID without external libraries
+  private generateErrorId(): string {
+    // Combine timestamp with random numbers for uniqueness
+    const timestamp = Date.now().toString(36);
+    const randomPart = Math.random().toString(36).substring(2, 10);
+    return `${timestamp}-${randomPart}`;
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    
+    const errorId = this.generateErrorId();
+    
     this.setState({
       error,
-      errorInfo
-    })
-    posthog.capture("error", {
-      source: "error-boundary",
-      error: error.message,
-      errorInfo: errorInfo.componentStack
+      errorInfo,
+      errorId
     })
     
-    DevLog(error, errorInfo)
+    
+    posthog.capture("error-boundary", {
+      error_id: errorId,
+      source: "error-boundary",
+      error_message: error.message,
+      error_name: error.name,
+      error_stack: error.stack,
+      component_stack: errorInfo.componentStack,
+      url: window.location.href,
+      timestamp: new Date().toISOString(),
+      user_agent: navigator.userAgent,
+      browser: {
+        language: navigator.language,
+        platform: navigator.platform,
+        cookieEnabled: navigator.cookieEnabled
+      }
+    })
+    
+    DevLog("Error caught by boundary:", error, errorInfo, "Error ID:", errorId)
   }
 
   render() {
@@ -46,8 +72,14 @@ class ErrorBoundary extends Component<Props, State> {
           <h2 className="text-lg font-semibold text-red-800 mb-2">
             Something went wrong
           </h2>
+          <p className="text-sm text-red-700 mb-2">
+            Error ID: {this.state.errorId}
+          </p>
+          <p className="text-xs text-red-600">
+            Please contact support with this error ID for assistance.
+          </p>
           {process.env.NODE_ENV === 'development' && (
-            <div className="text-sm text-red-700">
+            <div className="text-sm text-red-700 mt-4 pt-4 border-t border-red-200">
               <p className="font-medium">Error:</p>
               <pre className="mt-1 whitespace-pre-wrap">
                 {this.state.error?.toString()}
