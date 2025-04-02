@@ -26,7 +26,8 @@ export class TwitterDataMapper {
         tweet: Database.InsertTweets,
         media?: Database.InsertTweetMedia[],
         urls?: Database.InsertTweetURLs[],
-        mentions?: Database.InsertUserMentions[]
+        mentions?: Database.InsertUserMentions[],
+        extraInfo: string
       }[] {
 
         const res = []
@@ -50,7 +51,8 @@ export class TwitterDataMapper {
           tweet,
           ...(media?.length && { media }),
           ...(urls?.length && { urls }),
-          ...(mentions?.length && { mentions })
+          ...(mentions?.length && { mentions }),
+          extraInfo: "tweet"
         });
 
         if (legacy.is_quote_status && tweetData.quoted_status_result?.result) {
@@ -58,36 +60,76 @@ export class TwitterDataMapper {
             if(quotedTweetData) {
               const {account: QT_account, profile: QT_profile, tweet: QT_tweet, media: QT_media, urls: QT_urls, mentions: QT_mentions} = this.mapAll(quotedTweetData)[0];
               
-              // Create a new object, checking against all existing entries
-              const quotedTweetEntry = {
-                  // Include account if it's not duplicated in any existing entry
-                  ...((!res.some(entry => JSON.stringify(entry.account) === JSON.stringify(QT_account))) && 
-                      { account: QT_account }),
-                  
-                  // Include profile if it's not duplicated in any existing entry
-                  ...((!res.some(entry => JSON.stringify(entry.profile) === JSON.stringify(QT_profile))) && 
-                      { profile: QT_profile }),
-                  
-                  // Always include the tweet
-                  tweet: QT_tweet,
-                  
-                  // Include media if it exists and is not duplicated
-                  ...(QT_media && !res.some(entry => JSON.stringify(entry.media) === JSON.stringify(QT_media)) && 
-                      { media: QT_media }),
-                  
-                  // Include URLs if they exist and are not duplicated
-                  ...(QT_urls && !res.some(entry => JSON.stringify(entry.urls) === JSON.stringify(QT_urls)) && 
-                      { urls: QT_urls }),
-                  
-                  // Include mentions if they exist and are not duplicated
-                  ...(QT_mentions && !res.some(entry => JSON.stringify(entry.mentions) === JSON.stringify(QT_mentions)) && 
-                      { mentions: QT_mentions })
-              };
+              const quotedTweetEntry = this.addNonDuplicatedTweetEntry(
+                res,
+                "QT",
+                QT_account,
+                QT_profile,
+                QT_tweet,
+                QT_media,
+                QT_urls,
+                QT_mentions
+              );
               res.push(quotedTweetEntry);
-              
+            }
+
+            if(legacy.retweeted_status_result){
+              const retweetedTweetData = extractTweetUnion(legacy.retweeted_status_result.result);
+              if(retweetedTweetData) {
+                const {account: RT_account, profile: RT_profile, tweet: RT_tweet, media: RT_media, urls: RT_urls, mentions: RT_mentions} = this.mapAll(retweetedTweetData)[0];
+                
+                const retweetTweetEntry = this.addNonDuplicatedTweetEntry(
+                  res,
+                  "RT",
+                  RT_account,
+                  RT_profile,
+                  RT_tweet,
+                  RT_media,
+                  RT_urls,
+                  RT_mentions
+                );
+                res.push(retweetTweetEntry);
+              }
+            }
           }
-        }
         return res
+      }
+
+      private static addNonDuplicatedTweetEntry(
+        existingEntries: any[],
+        extraInfo: string,
+        tweetAccount: Database.InsertAccount,
+        tweetProfile: Database.InsertProfile,
+        tweetData: Database.InsertTweets,
+        tweetMedia?: Database.InsertTweetMedia[],
+        tweetUrls?: Database.InsertTweetURLs[],
+        tweetMentions?: Database.InsertUserMentions[]
+      ) {
+        return {
+          // Include account if it's not duplicated in any existing entry
+          ...(!existingEntries.some(entry => entry.account && JSON.stringify(entry.account) === JSON.stringify(tweetAccount)) && 
+              { account: tweetAccount }),
+          
+          // Include profile if it's not duplicated in any existing entry
+          ...(!existingEntries.some(entry => entry.profile && JSON.stringify(entry.profile) === JSON.stringify(tweetProfile)) && 
+              { profile: tweetProfile }),
+          
+          // Always include the tweet
+          tweet: tweetData,
+          
+          // Include media if it exists and is not duplicated
+          ...(tweetMedia && !existingEntries.some(entry => entry.media && JSON.stringify(entry.media) === JSON.stringify(tweetMedia)) && 
+              { media: tweetMedia }),
+          
+          // Include URLs if they exist and are not duplicated
+          ...(tweetUrls && !existingEntries.some(entry => entry.urls && JSON.stringify(entry.urls) === JSON.stringify(tweetUrls)) && 
+              { urls: tweetUrls }),
+          
+          // Include mentions if they exist and are not duplicated
+          ...(tweetMentions && !existingEntries.some(entry => entry.mentions && JSON.stringify(entry.mentions) === JSON.stringify(tweetMentions)) && 
+              { mentions: tweetMentions }),
+          extraInfo: extraInfo
+        };
       }
     
       private static mapTweet(tweetData: Tweet): Database.InsertTweets {
