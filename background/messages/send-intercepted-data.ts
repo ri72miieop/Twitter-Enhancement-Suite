@@ -356,9 +356,9 @@ async function processTweet(data: Tweet, hashed_userid: string) {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
-    const { account, profile, tweet, media, urls, mentions } = item
+    const { account, profile, tweet, media, urls, mentions,extraInfo } = item
 
-    let suffix = i==0 ? "" : i==1?"_QT":`_QT${i}`
+    let suffix = i==0 ? "" : i>0?`_${extraInfo}`:`_${extraInfo}${i}`
     // Account
 
     if (account) {
