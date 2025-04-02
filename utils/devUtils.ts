@@ -20,7 +20,8 @@ export const DevLog = (...args: any[]) => {
       .map(line => line.trim())
       .join('\n');
 
-    let logMessage = `[DEV-${type.toUpperCase()}] ${message}`;
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    let logMessage = `[DEV-${type.toUpperCase()} - ${timestamp}] ${message}`;
 
     switch (type) {
       case "warn":
