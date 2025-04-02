@@ -650,11 +650,24 @@ const InterceptorDashboard = () => {
       )}
 
       {/* Loading indicator for data refresh */}
-      {isLoading && data.length > 0 && (
+      {/*isLoading && data.length > 0 && (
         <div className="flex justify-center items-center my-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+          <div className="flex flex-col items-center">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-16 h-16 bg-blue-100 rounded-full animate-pulse"></div>
+              <div className="absolute w-14 h-14 bg-blue-200 rounded-full animate-ping opacity-60"></div>
+              <div className="relative z-10 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+            </div>
+            <div className="mt-3 text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full shadow-sm">
+              Refreshing data...
+            </div>
+          </div>
         </div>
-      )}
+      )*/}
 
       {/* Data Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
