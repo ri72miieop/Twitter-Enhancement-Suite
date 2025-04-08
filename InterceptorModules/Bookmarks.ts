@@ -4,7 +4,7 @@ import type { Tweet } from "./types/tweet";
 import type { Interceptor } from "./types/General";
 import type { TimelineInstructions } from "./types";
 import { db } from "~database";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, saveDebugDataIfDev } from "~utils/devUtils";
 
 
 
@@ -26,6 +26,7 @@ export const BookmarksInterceptor: Interceptor = (req, res) => {
   }
 
   try {
+    saveDebugDataIfDev('bookmarks', res.responseText);
     const newData = extractDataFromResponse<BookmarksResponse, Tweet>(
       res,
       (json) => json.data.bookmark_timeline_v2.timeline.instructions,

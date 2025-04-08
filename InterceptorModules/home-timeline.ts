@@ -1,7 +1,7 @@
 import { extractDataFromResponse, extractTimelineTweet, isTimelineEntryConversationThread, isTimelineEntryHomeConversationThread, isTimelineEntryTweet } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
 import type { TimelineAddEntriesInstruction, TimelineInstructions, TimelineTweet, Tweet } from "./types";
-import { DevLog, isDev } from "~utils/devUtils";
+import { DevLog, isDev, saveDebugDataIfDev } from "~utils/devUtils";
 
 import { supabase } from "~core/supabase";
 
@@ -26,14 +26,9 @@ export const HomeTimelineInterceptor: Interceptor = (req, res) => {
   }
 
   try {
-    if (isDev) {
-      
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      DevLog(`TTT.HomeTimelineInterceptor.debugfile: Saving debug data to home-timeline-${timestamp}.json, res: ${res.responseText}`);
-      const rawJson = res.responseText;
-      const filename = `home-timeline-${timestamp}.json`;
-      window.dispatchEvent(new CustomEvent('send-to-storage', { detail: { filename: filename, rawJson: rawJson }}));
-    }
+    // Save debug data to a file if in development mode
+    
+    saveDebugDataIfDev('home-timeline', res.responseText);
 
     const json: HomeTimelineResponse = JSON.parse(res.responseText);
     const instructions = json.data.home.home_timeline_urt.instructions;

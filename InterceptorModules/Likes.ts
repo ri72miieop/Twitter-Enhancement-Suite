@@ -4,7 +4,7 @@ import type { TimelineInstructions } from "./types";
 import { extractTimelineTweet } from "~utils/twe_utils";
 import { extractDataFromResponse } from "~utils/twe_utils";
 import { db } from "~database";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, saveDebugDataIfDev } from "~utils/devUtils";
 
 export interface LikesResponse {
     data: {
@@ -29,6 +29,7 @@ export interface LikesResponse {
     }
 
     try {
+      saveDebugDataIfDev('likes', res.responseText);  
       const newData = extractDataFromResponse<LikesResponse, Tweet>(
         res,
         (json) => json.data.user.result.timeline_v2.timeline.instructions,

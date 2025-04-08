@@ -4,7 +4,7 @@ import type { TimelineInstructions } from "./types";
 import { extractTimelineTweet } from "~utils/twe_utils";
 import { extractDataFromResponse } from "~utils/twe_utils";
 import { db } from "~database";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, saveDebugDataIfDev } from "~utils/devUtils";
 
 export interface FavoriteTweetRequest {
     variables: {
@@ -31,6 +31,8 @@ export interface UnfavoriteTweetResponse {
     if (!/.*\/graphql\/.+\/(Favorite|Unfavorite)Tweet/.test(req.url)) {
       return;
     }
+
+    saveDebugDataIfDev('favoriteTweet', res.responseText);
 
     const isRemoveFavorite = req.url.toLowerCase().includes("unfavoritetweet");
     const reqBody = JSON.parse(req.body.toString()) as FavoriteTweetRequest;

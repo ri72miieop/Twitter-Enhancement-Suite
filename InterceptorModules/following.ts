@@ -1,7 +1,7 @@
 import { extractDataFromResponse, extractTimelineUser } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
 import type { TimelineInstructions, User } from "./types";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, saveDebugDataIfDev } from "~utils/devUtils";
 
 export interface FollowingResponse {
   data: {
@@ -25,6 +25,8 @@ export const FollowingInterceptor: Interceptor = (req, res) => {
   }
 
   try {
+
+    saveDebugDataIfDev('following', res.responseText);
     const newData = extractDataFromResponse<FollowingResponse, User>(
       res,
       (json) => json.data.user.result.timeline.timeline.instructions,

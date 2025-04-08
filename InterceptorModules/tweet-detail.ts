@@ -1,7 +1,7 @@
 import { isTimelineEntryTweet, extractTimelineTweet, isTimelineEntryConversationThread } from "~utils/twe_utils";
 import type { Interceptor } from "./types/General";
 import type { TimelineInstructions, Tweet, TimelineAddEntriesInstruction, TimelineTweet, TimelineAddToModuleInstruction } from "./types";
-import { DevLog } from "~utils/devUtils";
+import { DevLog, saveDebugDataIfDev } from "~utils/devUtils";
 
 
 interface TweetDetailResponse {
@@ -19,6 +19,7 @@ export const TweetDetailInterceptor: Interceptor = (req, res) => {
   }
 
   try {
+    saveDebugDataIfDev('tweet-detail', res.responseText);
     const json: TweetDetailResponse = JSON.parse(res.responseText);
     const instructions = json.data.threaded_conversation_with_injections_v2.instructions;
 

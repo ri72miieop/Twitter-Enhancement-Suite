@@ -17,7 +17,7 @@ import {
   isTimelineEntryProfileConversation,
   isTimelineEntryTweet,
 } from '~utils/twe_utils';
-import { DevLog } from '~utils/devUtils';
+import { DevLog, saveDebugDataIfDev } from '~utils/devUtils';
 
 interface UserTweetsResponse {
   data: {
@@ -46,8 +46,12 @@ export const UserTweetsInterceptor: Interceptor = (req, res) => {
     const json: UserTweetsResponse = JSON.parse(res.responseText);
     const instructions = json.data.user.result.timeline_v2.timeline.instructions;
 
-    const newData: Tweet[] = [];
+    
+    saveDebugDataIfDev('user-tweets', res.responseText);
 
+
+    const newData: Tweet[] = [];
+    
     // The pinned tweet.
     const timelinePinEntryInstruction = instructions.find(
       (i) => i.type === 'TimelinePinEntry',
