@@ -52,6 +52,7 @@ export const saveDebugDataIfDev = (prefix: string, responseText: string) => {
       DevLog(`TTT.${prefix}.debugfile: Saving debug data to ${prefix}-${timestamp}.json, res: ${responseText}`);
       const rawJson = responseText;
       const filename = `${prefix}-${timestamp}.json`;
-      window.dispatchEvent(new CustomEvent('send-to-storage', { detail: { filename: filename, rawJson: rawJson }}));
+      //temporary disable sending to storage
+      //window.dispatchEvent(new CustomEvent('send-to-storage', { detail: { filename: filename, rawJson: rawJson }}));
     }
   };
