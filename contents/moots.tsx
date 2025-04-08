@@ -25,7 +25,7 @@ export const config: PlasmoCSConfig = {
 
 
 export const getInlineAnchorList: PlasmoGetInlineAnchorList = async () => {
-  const anchors = document.querySelectorAll("main > div:first-child")
+  const anchors = document.querySelectorAll('main[role="main"] div[data-testid="error-detail"] > div')
   return Array.from(anchors).map((element) => {   
     return {
       element,
@@ -75,7 +75,7 @@ const MootsPage = ({ anchor }: PlasmoCSUIProps) => {
 
     
     return (
-        <div style={{
+        <div key={anchor.element.id || "moots"} style={{
             background: themeColors.background,
             color: themeColors.text
         }}>
@@ -91,7 +91,7 @@ const MootsPage = ({ anchor }: PlasmoCSUIProps) => {
                 padding: "20px"
             }}>
                 {moots.map(moot => (
-                    <li key={moot.username} style={{
+                    <li key={moot.username || Math.random().toFixed(10).toString()} style={{
                         padding: "10px",
                         margin: "10px 0",
                         borderRadius: "8px",
