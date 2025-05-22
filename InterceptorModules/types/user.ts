@@ -25,12 +25,20 @@ export interface User {
   has_graduated_access: boolean;
   is_blue_verified: boolean;
   profile_image_shape: 'Square' | 'Circle';
+  avatar: {
+    image_url: string;
+  }
+  core :{
+    created_at: string;
+    name: string;
+    screen_name: string;
+  }
   legacy: {
     followed_by: boolean;
     following: boolean;
     can_dm: boolean;
     can_media_tag: boolean;
-    created_at: string;
+    
     default_profile: boolean;
     default_profile_image: boolean;
     description: string;
@@ -44,7 +52,6 @@ export interface User {
     listed_count: number;
     location: string;
     media_count: number;
-    name: string;
     normal_followers_count: number;
     pinned_tweet_ids_str: string[];
     possibly_sensitive: boolean;
@@ -52,7 +59,6 @@ export interface User {
     profile_image_url_https: string;
     profile_interstitial_type: string;
     protected?: boolean;
-    screen_name: string;
     statuses_count: number;
     translator_type: string;
     url: string;

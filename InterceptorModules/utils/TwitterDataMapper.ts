@@ -29,7 +29,7 @@ export class TwitterDataMapper {
         mentions?: Database.InsertUserMentions[],
         extraInfo: string
       }[] {
-
+        try {
         const res = []
         const userData = tweetData.core.user_results.result;
         const legacy = tweetData.legacy;
@@ -93,6 +93,10 @@ export class TwitterDataMapper {
             }
           }
         return res
+        } catch (error) {
+          console.error("Error mapping tweet data:", error);
+          throw error;
+        }
       }
 
       private static addNonDuplicatedTweetEntry(
@@ -164,9 +168,9 @@ export class TwitterDataMapper {
         return {
           account_id: userData.rest_id,
           created_via: "twitter_import",
-          username: userData.legacy.screen_name,
-          created_at: new Date(userData.legacy.created_at).toISOString(),
-          account_display_name: userData.legacy.name,
+          username: userData.core.screen_name,
+          created_at: new Date(userData.core.created_at).toISOString(),
+          account_display_name: userData.core.name,
           num_tweets: userData.legacy.statuses_count,
           num_following: userData.legacy.friends_count,
           num_followers: userData.legacy.followers_count,
@@ -179,7 +183,7 @@ export class TwitterDataMapper {
     
         return {
           account_id: userData.rest_id,
-          avatar_media_url: userData.legacy.profile_image_url_https,
+          avatar_media_url: userData.avatar.image_url,
           header_media_url: userData.legacy.profile_banner_url || null,
           bio: userData.legacy.description || null,
           location: userData.legacy.location || null,
