@@ -3,7 +3,7 @@ import type { PlasmoMessaging } from "@plasmohq/messaging"
 import { GlobalCachedData } from "~contents/Storage/CachedData"
 import posthog from "~core/posthog"
 import { supabase } from "~core/supabase"
-import type { Tweet } from "~InterceptorModules/types/tweet"
+import type { Tweet, TweetUnion, TweetWithVisibilityResults } from "~InterceptorModules/types/tweet"
 import type { User } from "~InterceptorModules/types/user"
 import { TwitterDataMapper } from "~InterceptorModules/utils/TwitterDataMapper"
 import type { UserMinimal } from "~utils/dbUtils"
@@ -297,6 +297,22 @@ async function isValidUserMentioned(userId: string) {
   }
 }
 
+function getQuotedUserId(item: Tweet): string | null {
+  const QT = item.quoted_status_result?.result;
+  if(!QT) return null;
+  
+  switch (QT.__typename) {
+    case "Tweet":
+      let tweet = QT as Tweet;
+      return tweet.core.user_results.result.rest_id;
+    case "TweetWithVisibilityResults":
+      let tweetWithVisibilityResults = QT as TweetWithVisibilityResults;
+      return tweetWithVisibilityResults.tweet.core.user_results.result.rest_id;
+    default:
+      return null;
+  }
+}
+
 async function processType(type: string, data: any, hashed_userid: string) {
   try {
     switch (type) {
@@ -324,7 +340,11 @@ async function processType(type: string, data: any, hashed_userid: string) {
           "Interceptor.background.process.validateUserMention - JSON:" +
             JSON.stringify(itemToProccess.core.user_results.result)
         )
-        const isValidUser = await isLoggedInUser(userId) || await isValidUserMentioned(userId)
+
+        const quotedUserID = getQuotedUserId(itemToProccess);
+        const isValidQuotedUser = quotedUserID && (await isLoggedInUser(quotedUserID) || await isValidUserMentioned(quotedUserID)) ;
+        const isValidUser = await isLoggedInUser(userId) || await isValidUserMentioned(userId) || isValidQuotedUser;
+
         DevLog(
           `Interceptor.background.process.validateUserMention.${userId}.check`
         )
