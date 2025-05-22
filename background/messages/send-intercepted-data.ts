@@ -313,6 +313,22 @@ function getQuotedUserId(item: Tweet): string | null {
   }
 }
 
+function isQTUserProtected(tweet: Tweet): boolean {
+  const QT = tweet.quoted_status_result?.result;
+  if(!QT) return false;
+  
+  switch (QT.__typename) {
+    case "Tweet":
+      let tweet = QT as Tweet;
+      return tweet.core.user_results.result.legacy.protected;
+    case "TweetWithVisibilityResults":
+      let tweetWithVisibilityResults = QT as TweetWithVisibilityResults;
+      return tweetWithVisibilityResults.tweet.core.user_results.result.legacy.protected;
+    default:
+      return false;
+  }
+}
+
 async function processType(type: string, data: any, hashed_userid: string) {
   try {
     switch (type) {
@@ -328,7 +344,7 @@ async function processType(type: string, data: any, hashed_userid: string) {
           "Interceptor.background.process.home-timeline - Processing tweet:" +
             itemToProccess.rest_id
         )
-        if (itemToProccess.core.user_results.result.legacy.protected) {
+        if (itemToProccess.core.user_results.result.legacy.protected || isQTUserProtected(itemToProccess)) {
           DevLog(
             "Interceptor.background.process.home-timeline - Skipping protected account:" +
               itemToProccess.rest_id
