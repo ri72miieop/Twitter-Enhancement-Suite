@@ -167,7 +167,7 @@ export class TwitterDataMapper {
 
         //Twitter changed the structure of the JSON object, we are trying to grab the data from the old structure if it exists
         let oldUsername = userData.legacy.screen_name;
-        let oldCreatedAt = new Date(userData.legacy.created_at).toISOString();
+        let oldCreatedAt = userData.legacy.created_at;
         let oldAccountDisplayName = userData.legacy.name;
         
         return {
