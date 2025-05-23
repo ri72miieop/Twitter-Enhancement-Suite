@@ -66,6 +66,10 @@ export interface User {
     verified_type: string;
     want_retweets: boolean;
     withheld_in_countries: unknown[];
+    //Keep the old structure too for now
+    created_at: string;
+    name: string;
+    screen_name: string;
   };
   legacy_extended_profile?: {
     birthdate?: {

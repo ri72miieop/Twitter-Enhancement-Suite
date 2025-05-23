@@ -164,13 +164,18 @@ export class TwitterDataMapper {
     
       private static mapAccount(tweetData: Tweet): Database.InsertAccount {
         const userData = tweetData.core.user_results.result;
+
+        //Twitter changed the structure of the JSON object, we are trying to grab the data from the old structure if it exists
+        let oldUsername = userData.legacy.screen_name;
+        let oldCreatedAt = new Date(userData.legacy.created_at).toISOString();
+        let oldAccountDisplayName = userData.legacy.name;
         
         return {
           account_id: userData.rest_id,
           created_via: "twitter_import",
-          username: userData.core.screen_name,
-          created_at: new Date(userData.core.created_at).toISOString(),
-          account_display_name: userData.core.name,
+          username: oldUsername || userData.core.screen_name,
+          created_at: new Date(oldCreatedAt|| userData.core.created_at).toISOString(),
+          account_display_name: oldAccountDisplayName || userData.core.name,
           num_tweets: userData.legacy.statuses_count,
           num_following: userData.legacy.friends_count,
           num_followers: userData.legacy.followers_count,
@@ -180,10 +185,12 @@ export class TwitterDataMapper {
     
       private static mapProfile(tweetData: Tweet): Database.InsertProfile {
         const userData = tweetData.core.user_results.result;
-    
+        //Twitter changed the structure of the JSON object, we are trying to grab the data from the old structure if it exists
+        let oldAvatarMediaUrl = userData.legacy.profile_image_url_https;
+        
         return {
           account_id: userData.rest_id,
-          avatar_media_url: userData.avatar.image_url,
+          avatar_media_url: oldAvatarMediaUrl || userData.avatar.image_url,
           header_media_url: userData.legacy.profile_banner_url || null,
           bio: userData.legacy.description || null,
           location: userData.legacy.location || null,
