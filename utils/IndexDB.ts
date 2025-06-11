@@ -211,7 +211,7 @@ export async function cleanupOldRecords(maxRecords = 10000): Promise<number> {
       while (remainingToDelete > 0) {
 
         const oldestBatch = await indexDB.data
-          .orderBy('timestamp')
+          .orderBy('date_added').reverse()
           .limit(Math.min(BATCH_SIZE, remainingToDelete))
           .toArray();
         
@@ -226,7 +226,7 @@ export async function cleanupOldRecords(maxRecords = 10000): Promise<number> {
           await indexDB.data
             .where({
               item_id: record.item_id,
-              timestamp: record.timestamp
+              date_added: record.date_added
             })
             .delete();
         }
