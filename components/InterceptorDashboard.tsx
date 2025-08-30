@@ -181,13 +181,11 @@ const InterceptorDashboard = () => {
         const results = await Promise.all(
           batch.map(item => 
             sendToBackground({
-              name: "send-intercepted-data",
+              name: "send-intercepted-data-raw",
               body: {
                 originator_id: item.originator_id,
-                item_id: item.item_id,
                 type: item.type,
                 data: item.data,
-                userid: item.user_id,
                 date_added: item.date_added
               }
             })
